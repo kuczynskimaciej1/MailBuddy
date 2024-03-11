@@ -1,6 +1,10 @@
-# from MessagingService.IReader import IReader
-from MessagingService import *
+from MessagingService.senders import *
 from models import *
+from interface import AppUI
+from DataSources.dataSources import DatabaseHandler
 
 if __name__ == "__main__":
-    pass
+    ui = AppUI()
+    ui.prepareInterface()
+    ui.run()
+

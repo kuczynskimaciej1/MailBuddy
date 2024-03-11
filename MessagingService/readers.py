@@ -11,7 +11,8 @@ class IReader(metaclass=ABCMeta):
             if any("ReadAll" in B.__dict__ for B in __subclass.__mro__):
                 return True
         return NotImplemented
-   
-
 
     
+class IMAPReader(IReader):
+    def ReadAll() -> None:
+        pass

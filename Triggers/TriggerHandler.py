@@ -1,4 +1,5 @@
-import MessagingService
+from MessagingService.readers import IReader
+from MessagingService.senders import ISender
 
 class TriggerHandler():
     instance = None
