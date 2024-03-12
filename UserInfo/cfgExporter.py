@@ -1,7 +1,9 @@
 from enum import Enum
-from models import *
+import models
+from models import __all__ as modelClassNames
 from DataSources.dataSources import DatabaseHandler
 from pathlib import Path
+import json
 
 class ExportLocation(Enum):
     Database = 1
@@ -34,7 +36,7 @@ class ConfigExporter():
         """
         return cls(ExportLocation.Database, dbHandler)
     
-    
+           
     @classmethod
     def ToJSON(cls, filename: str):
         return cls(ExportLocation.JSON, filename)
@@ -46,7 +48,24 @@ class ConfigExporter():
                 pass
             case ExportLocation.JSON:
                 assert isinstance(self.location, str)
-                Path(self.location)
+                ConfigExporter.saveFile(ConfigExporter.__serializeJsonModelObjects(), self.location)
                 pass
-        pass
-
+    
+    @classmethod
+    def __serializeJsonModelObjects(_) -> list:
+        result = []
+        classes = modelClassNames
+        
+        for modelType in classes:
+            result.append(getattr(models, modelType).allInstances)
+        
+        return result
+    
+    
+    def saveFile(input: list, location: str) -> None:
+        try:
+            with open(location, "x", encoding="UTF-8") as f:
+                for objects in input:
+                    json.dump(objects, f, indent=4)
+        except Exception as e:
+            print(f"Error: {e}")
