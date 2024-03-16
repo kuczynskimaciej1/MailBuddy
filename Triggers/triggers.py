@@ -1,6 +1,16 @@
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
+from models import IModelMeta
 
-class ITrigger(metaclass=ABCMeta):
+class ITrigger(metaclass=IModelMeta):
+    createTable = """CREATE TABLE IF NOT EXISTS "Triggers" (
+	"id" int NOT NULL,
+	"name" varchar(100) NOT NULL,
+	"type" int NOT NULL,
+	"script" text NOT NULL DEFAULT '',
+	PRIMARY KEY ("id")
+);"""
+    constraints = []
+    
     @abstractmethod
     def CheckConditions():
         raise AssertionError
