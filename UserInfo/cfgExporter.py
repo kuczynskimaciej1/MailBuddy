@@ -45,11 +45,10 @@ class ConfigExporter():
         match self.export:
             case ExportLocation.Database:
                 assert isinstance(self.location, DatabaseHandler)
-                pass
+                
             case ExportLocation.JSON:
                 assert isinstance(self.location, str)
                 ConfigExporter.saveFile(ConfigExporter.__serializeJsonModelObjects(), self.location)
-                pass
     
     @classmethod
     def __serializeJsonModelObjects(_) -> list:

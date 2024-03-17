@@ -1,4 +1,8 @@
 from abc import ABCMeta, abstractmethod
+from enum import Enum
+
+class SupportedDbEngines(Enum):
+    SQLite=1
 
 class IDataSource(metaclass = ABCMeta):
     @classmethod
@@ -11,7 +15,7 @@ class IDataSource(metaclass = ABCMeta):
         raise RuntimeError
     
 class DatabaseHandler(IDataSource):
-    def __init__(self) -> None:
+    def __init__(self, engine: SupportedDbEngines) -> None:
         pass
     
     def GetData():

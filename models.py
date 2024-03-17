@@ -20,13 +20,13 @@ class IModel(metaclass=IModelMeta):
         pass
 
 
-class Template(IModel):
+class Template(IModelMeta):
     createTable = """CREATE TABLE IF NOT EXISTS "Templates" (
-	"id" int NOT NULL,
-	"name" varchar(100) NOT NULL,
-	"content" text NOT NULL DEFAULT '',
-	PRIMARY KEY ("id")
-);"""
+    "id" INTEGER PRIMARY KEY NOT NULL,
+    "name" VARCHAR(100) NOT NULL,
+    "content" TEXT NOT NULL DEFAULT ''
+);
+"""
 
     constraints = [
         """ALTER TABLE "Templates" ADD CONSTRAINT "Templates_fk0" FOREIGN KEY ("id") REFERENCES "Messages"("template_id");"""
@@ -36,21 +36,20 @@ class Template(IModel):
         self.title = title
         self.content = MIMEText("", 'html')
         self.path = ""
-        Template.allInstances.append(self)
+        Template.all_instances.append(self)
 
 
 class Attachment(IModel):
     createTable = """CREATE TABLE IF NOT EXISTS "Attachments" (
-	"attachment_id" int NOT NULL,
+	"attachment_id" INTEGER PRIMARY KEY NOT NULL,
 	"name" varchar(100) NOT NULL,
 	"file_path" varchar(255),
-	"file" binary DEFAULT '',
-	PRIMARY KEY ("attachment_id")
+	"file" binary DEFAULT ''
 );""" 
     def __init__(self, path, type) -> None:
         self.path = path
         self.type = type
-        Attachment.allInstances.append(self)
+        Attachment.all_instances.append(self)
     
     def prepareAttachment(self):
         att = MIMEApplication(open(self.path, "rb").read(),_subtype=self.type)
@@ -60,35 +59,33 @@ class Attachment(IModel):
     
 class Contact(IModel):
     createTable = """CREATE TABLE IF NOT EXISTS "Contacts" (
-	"contact_id" int NOT NULL,
+	"contact_id" Integer PRIMARY KEY,
 	"first_name" varchar(50) NOT NULL,
 	"last_name" varchar(50) NOT NULL,
-	"email" varchar(100) NOT NULL,
-	PRIMARY KEY ("contact_id")
+	"email" varchar(100) NOT NULL
 );"""
 
     def __init__(self, first_name, last_name, email) -> None:
         self.first_name = first_name
         self.last_name = last_name
         self.email = email
-        Contact.allInstances.append(self)
+        Contact.all_instances.append(self)
 
   
 class User(IModel):
     def __init__(self, first_name, last_name, email, password) -> None:
         self.contact = Contact(first_name, last_name, email)
         self.password = password
-        User.allInstances.append(self)
+        User.all_instances.append(self)
 
  
 class Message(IModel, MIMEMultipart):
     createTable = """CREATE TABLE IF NOT EXISTS "Messages" (
-	"message_id" int NOT NULL DEFAULT '',
-	"trigger_id" int NOT NULL,
-	"contact_id" int NOT NULL,
-	"template_id" int NOT NULL DEFAULT '',
-	"sent_at" timestamp,
-	PRIMARY KEY ("message_id")
+	"message_id" integer PRIMARY KEY,
+	"trigger_id" integer NOT NULL,
+	"contact_id" integer NOT NULL,
+	"template_id" integer NOT NULL,
+	"sent_at" timestamp
 );"""
 
     constraints = [
@@ -99,5 +96,5 @@ class Message(IModel, MIMEMultipart):
     def __init__(self, recipient: Contact, att: list[Attachment] = None) -> None:
         self.recipient = recipient
         self.att = att
-        Message.allInstances.append(self)
+        Message.all_instances.append(self)
 
