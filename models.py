@@ -20,17 +20,13 @@ class IModel(metaclass=IModelMeta):
         pass
 
 
-class Template(IModelMeta):
-    createTable = """CREATE TABLE IF NOT EXISTS "Templates" (
-    "id" INTEGER PRIMARY KEY NOT NULL,
-    "name" VARCHAR(100) NOT NULL,
-    "content" TEXT NOT NULL DEFAULT ''
+class Template(IModel):
+    createTable = """CREATE TABLE IF NOT EXISTS Templates (
+    id INTEGER PRIMARY KEY NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    content TEXT NOT NULL DEFAULT ''
 );
 """
-
-    constraints = [
-        """ALTER TABLE "Templates" ADD CONSTRAINT "Templates_fk0" FOREIGN KEY ("id") REFERENCES "Messages"("template_id");"""
-    ]
     
     def __init__(self, title, path) -> None:
         self.title = title
@@ -40,12 +36,13 @@ class Template(IModelMeta):
 
 
 class Attachment(IModel):
-    createTable = """CREATE TABLE IF NOT EXISTS "Attachments" (
-	"attachment_id" INTEGER PRIMARY KEY NOT NULL,
-	"name" varchar(100) NOT NULL,
-	"file_path" varchar(255),
-	"file" binary DEFAULT ''
-);""" 
+    createTable = """CREATE TABLE IF NOT EXISTS Attachments (
+	attachment_id INTEGER PRIMARY KEY NOT NULL,
+	name varchar(100) NOT NULL,
+	file_path varchar(255),
+	file binary DEFAULT ''
+);
+""" 
     def __init__(self, path, type) -> None:
         self.path = path
         self.type = type
@@ -58,11 +55,11 @@ class Attachment(IModel):
 
     
 class Contact(IModel):
-    createTable = """CREATE TABLE IF NOT EXISTS "Contacts" (
-	"contact_id" Integer PRIMARY KEY,
-	"first_name" varchar(50) NOT NULL,
-	"last_name" varchar(50) NOT NULL,
-	"email" varchar(100) NOT NULL
+    createTable = """CREATE TABLE IF NOT EXISTS Contacts (
+	contact_id Integer PRIMARY KEY,
+	first_name varchar(50) NOT NULL,
+	last_name varchar(50) NOT NULL,
+	email varchar(100) NOT NULL
 );"""
 
     def __init__(self, first_name, last_name, email) -> None:
@@ -80,18 +77,16 @@ class User(IModel):
 
  
 class Message(IModel, MIMEMultipart):
-    createTable = """CREATE TABLE IF NOT EXISTS "Messages" (
-	"message_id" integer PRIMARY KEY,
-	"trigger_id" integer NOT NULL,
-	"contact_id" integer NOT NULL,
-	"template_id" integer NOT NULL,
-	"sent_at" timestamp
+    createTable = """CREATE TABLE IF NOT EXISTS Messages (
+    message_id INTEGER PRIMARY KEY,
+    trigger_id INTEGER NOT NULL,
+    contact_id INTEGER NOT NULL,
+    template_id INTEGER NOT NULL,
+    sent_at TIMESTAMP,
+    FOREIGN KEY (trigger_id) REFERENCES Triggers(id),
+    FOREIGN KEY (contact_id) REFERENCES Contacts(contact_id),
+    FOREIGN KEY (template_id) REFERENCES Templates(id)
 );"""
-
-    constraints = [
-        """ALTER TABLE "Messages" ADD CONSTRAINT "Messages_fk1" FOREIGN KEY ("trigger_id") REFERENCES "Triggers"("id");""",
-        """ALTER TABLE "Messages" ADD CONSTRAINT "Messages_fk2" FOREIGN KEY ("contact_id") REFERENCES "Contacts"("contact_id");"""
-    ]
 
     def __init__(self, recipient: Contact, att: list[Attachment] = None) -> None:
         self.recipient = recipient

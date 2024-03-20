@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from enum import Enum
+from pandas import read_csv, read_excel, DataFrame
 
 class SupportedDbEngines(Enum):
     SQLite=1
@@ -25,10 +26,10 @@ class XLSXHandler(IDataSource):
     def __init__(self, path: str) -> None:
         self.file_path = path
     
-    def GetData(self) -> pd.DataFrame:
+    def GetData(self) -> DataFrame:
         """otwiera plik XLS"""
         try:
-            data = pd.read_excel(self.file_path)
+            data = read_excel(self.file_path)
             return data
         except Exception as e:
             print("Błąd podczas wczytywania pliku XLSX:", e)
@@ -40,10 +41,10 @@ class CSVXHandler(IDataSource):
         self.file_path = path
         
     
-    def GetData(self) -> pd.DataFrame:
+    def GetData(self) -> DataFrame:
         """otwiera plik csv"""
         try:
-            data = pd.read_csv(self.file_path)
+            data = read_csv(self.file_path)
             return data
         except Exception as e:
             print("Błąd podczas wczytywania pliku CSV:", e)
