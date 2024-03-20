@@ -7,26 +7,25 @@ from abc import ABCMeta, abstractmethod
 __all__ = ["Template", "Attachment", "Contact", "User", "Message"]
 
 
-class IModelMeta(ABCMeta):
-    def __init__(cls, name, bases, namespace):
-        super().__init__(name, bases, namespace)
-        cls.createTable = ""
-        cls.constraints = []
-        cls.all_instances = []
 
-class IModel(metaclass=IModelMeta):
+class IModel(metaclass=ABCMeta):
     @abstractmethod
     def __init__(self, *args, **kwargs):
+        pass
+    
+    @abstractmethod
+    def getCreateTableString() -> str:
         pass
 
 
 class Template(IModel):
-    createTable = """CREATE TABLE IF NOT EXISTS Templates (
-    id INTEGER PRIMARY KEY NOT NULL,
-    name VARCHAR(100) NOT NULL,
-    content TEXT NOT NULL DEFAULT ''
-);
-"""
+    all_instances = []
+    def getCreateTableString() -> str:
+        return """CREATE TABLE IF NOT EXISTS Templates (
+                id INTEGER PRIMARY KEY NOT NULL,
+                name VARCHAR(100) NOT NULL,
+                content TEXT NOT NULL DEFAULT ''
+            );"""
     
     def __init__(self, title, path) -> None:
         self.title = title
@@ -36,7 +35,9 @@ class Template(IModel):
 
 
 class Attachment(IModel):
-    createTable = """CREATE TABLE IF NOT EXISTS Attachments (
+    all_instances = []
+    def getCreateTableString() -> str:
+        return """CREATE TABLE IF NOT EXISTS Attachments (
 	attachment_id INTEGER PRIMARY KEY NOT NULL,
 	name varchar(100) NOT NULL,
 	file_path varchar(255),
@@ -55,11 +56,13 @@ class Attachment(IModel):
 
     
 class Contact(IModel):
-    createTable = """CREATE TABLE IF NOT EXISTS Contacts (
-	contact_id Integer PRIMARY KEY,
+    all_instances = []
+    def getCreateTableString() -> str:
+        return """CREATE TABLE IF NOT EXISTS Contacts (
 	first_name varchar(50) NOT NULL,
 	last_name varchar(50) NOT NULL,
-	email varchar(100) NOT NULL
+	email varchar(100) NOT NULL,
+    PRIMARY KEY(first_name, last_name, email)
 );"""
 
     def __init__(self, first_name, last_name, email) -> None:
@@ -67,9 +70,15 @@ class Contact(IModel):
         self.last_name = last_name
         self.email = email
         Contact.all_instances.append(self)
+        
+    def __str__(self) -> str:
+        return f"Contact {self.first_name} {self.last_name}, {self.email}"
 
   
 class User(IModel):
+    def getCreateTableString() -> str:
+        return None
+    
     def __init__(self, first_name, last_name, email, password) -> None:
         self.contact = Contact(first_name, last_name, email)
         self.password = password
@@ -77,7 +86,9 @@ class User(IModel):
 
  
 class Message(IModel, MIMEMultipart):
-    createTable = """CREATE TABLE IF NOT EXISTS Messages (
+    all_instances = []
+    def getCreateTableString() -> str:
+        return """CREATE TABLE IF NOT EXISTS Messages (
     message_id INTEGER PRIMARY KEY,
     trigger_id INTEGER NOT NULL,
     contact_id INTEGER NOT NULL,

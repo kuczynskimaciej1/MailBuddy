@@ -1,15 +1,15 @@
 from abc import abstractmethod
-from models import IModelMeta
+from models import IModel
 
-class ITrigger(metaclass=IModelMeta):
-    createTable = """CREATE TABLE IF NOT EXISTS "Triggers" (
-	"id" int NOT NULL,
-	"name" varchar(100) NOT NULL,
-	"type" int NOT NULL,
-	"script" text NOT NULL DEFAULT '',
-	PRIMARY KEY ("id")
-);"""
-    constraints = []
+class ITrigger(IModel):
+    def getCreateTableString() -> str:
+        return """CREATE TABLE IF NOT EXISTS "Triggers" (
+            "id" int NOT NULL,
+            "name" varchar(100) NOT NULL,
+            "type" int NOT NULL,
+            "script" text NOT NULL DEFAULT '',
+            PRIMARY KEY ("id")
+            );"""
     
     @abstractmethod
     def CheckConditions():

@@ -10,28 +10,10 @@ def createDatabase(databaseName: str):
     tableCreators = [Template, Attachment, Contact, ITrigger, Message]
     print("TableCreators: " + str(tableCreators))
     for modelClass in tableCreators:
-        cmd = ""
-        ct = modelClass.createTable
-        if ct:
-            print(ct)
-            cmd = ct
-        else:
-            print("No createTable attribute defined for", modelClass)
-        
-        if (cmd != ""):
+        cmd = modelClass.getCreateTableString()
+        if (cmd != None):
             cur.execute(cmd)
     print("CREATE TABLEs executed (hopefully)")
-
-
-    for modelClass in tableCreators:
-        cmds = modelClass.constraints
-        for c in cmds:
-            if c != "":
-                try:
-                    cur.execute(c)
-                except sqlite3.OperationalError as e:
-                    raise AttributeError(f"Error while executing {c}, Error: {e}")
-    print("constraints executed (hopefully)")
 
     additionalSetup = [ 
         """CREATE TABLE IF NOT EXISTS Message_Attachments (
@@ -67,16 +49,18 @@ def insertContact(obj: Contact):
 def getContacts() -> list[Contact]:
     con = sqlite3.connect("localSqLite.db")
     cur = con.cursor()
-    result = cur.execute("SELECT * from Contacts")
+    result = cur.execute("SELECT first_name, last_name, email from Contacts")
     return parseContacts(result.fetchall())
 
-def parseContacts(result: list) -> list:
-    for c in result:
-        print(c)
-        print(c)
+def parseContacts(rawData: list) -> list:
+    result = []
+    for c in rawData:
+        result.append(Contact(c[0], c[1], c[2]))
+    return result
 
 def insertData(table, rawData):
     cur = sqlite3.connect("localSqLite.db").cursor()
+    pass
     
 
 def sqlInjectionCleaner(text: str):

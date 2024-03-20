@@ -3,17 +3,22 @@ from DataSources.sqliteOperations import *
 
 dbName = "localSqLite.db"
 
-createDatabase(dbName)
+# createDatabase(dbName)
+
+# con = sqlite3.connect(dbName)
+# cur = con.cursor()
+
+# res = cur.execute("SELECT name FROM sqlite_master")
+# print(res.fetchall())
+
+
+# from models import Contact
+
+insertContact(Contact(first_name="Adam", last_name="Adamski", email="adamski.a@adamski.ad"))
+# contacts = getContacts()
+# [print(x) for x in contacts]
 
 con = sqlite3.connect(dbName)
 cur = con.cursor()
-
-res = cur.execute("SELECT name FROM sqlite_master")
-print(res.fetchall())
-
-
-from models import Contact
-
-insertContact(Contact(first_name="Adam", last_name="Adamski", email="adamski.a@adamski.ad"))
-contacts = getContacts()
-[print(x) for x in contacts]
+result = cur.execute("SELECT first_name, last_name, email from Contacts")
+print(result.fetchall())
