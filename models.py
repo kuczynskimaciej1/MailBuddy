@@ -59,11 +59,11 @@ class Contact(IModel):
     all_instances = []
     def getCreateTableString() -> str:
         return """CREATE TABLE IF NOT EXISTS Contacts (
-	first_name varchar(50) NOT NULL,
-	last_name varchar(50) NOT NULL,
-	email varchar(100) NOT NULL,
-    PRIMARY KEY(first_name, last_name, email)
-);"""
+            email varchar(100) NOT NULL, 
+            first_name varchar(50) NOT NULL, 
+            last_name varchar(50) NOT NULL,
+            PRIMARY KEY(email) 
+            );"""
 
     def __init__(self, first_name, last_name, email) -> None:
         self.first_name = first_name
@@ -91,11 +91,11 @@ class Message(IModel, MIMEMultipart):
         return """CREATE TABLE IF NOT EXISTS Messages (
     message_id INTEGER PRIMARY KEY,
     trigger_id INTEGER NOT NULL,
-    contact_id INTEGER NOT NULL,
+    email varchar(100) NOT NULL,
     template_id INTEGER NOT NULL,
     sent_at TIMESTAMP,
     FOREIGN KEY (trigger_id) REFERENCES Triggers(id),
-    FOREIGN KEY (contact_id) REFERENCES Contacts(contact_id),
+    FOREIGN KEY (email) REFERENCES Contacts(email),
     FOREIGN KEY (template_id) REFERENCES Templates(id)
 );"""
 
