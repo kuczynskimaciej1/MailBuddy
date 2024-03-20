@@ -11,19 +11,40 @@ class IDataSource(metaclass = ABCMeta):
                 callable(subclass.GetData))
         
     @abstractmethod
-    def GetData():
+    def GetData(self):
         raise RuntimeError
     
 class DatabaseHandler(IDataSource):
     def __init__(self, engine: SupportedDbEngines) -> None:
         pass
     
-    def GetData():
+    def GetData(self):
         pass
     
-class FileInputHandler(IDataSource):
-    def __init__(self) -> None:
-        pass
+class XLSXHandler(IDataSource):
+    def __init__(self, path: str) -> None:
+        self.file_path = path
     
-    def GetData():
-        pass
+    def GetData(self) -> pd.DataFrame:
+        """otwiera plik XLS"""
+        try:
+            data = pd.read_excel(self.file_path)
+            return data
+        except Exception as e:
+            print("Błąd podczas wczytywania pliku XLSX:", e)
+            return None
+
+
+class CSVXHandler(IDataSource):
+    def __init__(self, path: str) -> None:
+        self.file_path = path
+        
+    
+    def GetData(self) -> pd.DataFrame:
+        """otwiera plik csv"""
+        try:
+            data = pd.read_csv(self.file_path)
+            return data
+        except Exception as e:
+            print("Błąd podczas wczytywania pliku CSV:", e)
+            return None
