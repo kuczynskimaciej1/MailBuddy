@@ -1,16 +1,54 @@
 import pytest
+from DataSources.sqliteOperations import sqlite
 from models import *
 from DataSources.dataSources import DatabaseHandler
 from models import Contact
+import sqlite3
+import os
+
+
+localDbName = "localSQLite.sqlite3"
+insertCommand = "INSERT INTO Contacts VALUES(?, ?, ?)"
+selectCommand = "SELECT email, first_name, last_name from Contacts where email = ?"
 
 @pytest.fixture
+def contact1() -> Contact:
+    return Contact("Adam", "Adamski", "adamski.a@aa.aa") # Contact("Wojciech", "Wojciechowski", "ww@ww.ww")]
+    
+@pytest.fixture
+def sqliteConnection() -> sqlite3.Connection:
+    return sqlite3.connect(localDbName)
 
+@pytest.fixture
+def dropDatabase() -> bool:
+    if os.path.exists(localDbName):
+        os.remove(path=localDbName)
+        return True
+    return False
+        
+@pytest.fixture
+def createDatabase() -> bool:
+    testHandler = sqlite(localDbName)
+    testHandler.createDatabase([Contact])
+    return True
+    
+@pytest.fixture
+def recreateDatabase(dropDatabase, createDatabase)-> bool:
+    return dropDatabase and createDatabase
 
-insertContact(Contact(first_name="Adam", last_name="Adamski", email="adamski.a@adamski.ad"))
-# contacts = getContacts()
-# [print(x) for x in contacts]
+def test_contact_sqlite_insertable(recreateDatabase, contact1, sqliteConnection):
+    c = contact1
+    parameters = (c.first_name, c.last_name, c.email)
+    
+    sqliteConnection.cursor().execute(insertCommand, parameters)
+    sqliteConnection.commit()
+    
+    scur = sqliteConnection.cursor().execute(selectCommand, c.email)
+    selectionResult = scur.fetchall()
+    print(selectionResult)
+    assert len(selectionResult) == 1, f"output: {selectionResult}, got {len(selectionResult)}"
+    assert selectionResult[0] == c.email, f"output: {selectionResult[0]}"
+    
 
-con = sqlite3.connect(dbName)
-cur = con.cursor()
-result = cur.execute("SELECT first_name, last_name, email from Contacts")
-print(result.fetchall())
+# def contact_sqlite_pk_unique_email():
+    
