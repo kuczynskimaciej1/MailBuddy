@@ -2,6 +2,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from abc import ABCMeta, abstractmethod
+from typing import Type
 
 
 __all__ = ["Template", "Attachment", "Contact", "User", "Message"]
@@ -16,16 +17,35 @@ class IModel(metaclass=ABCMeta):
     @abstractmethod
     def getCreateTableString() -> str:
         pass
+    
+    @abstractmethod
+    def getTableName() -> str:
+        pass
+    
+    @abstractmethod
+    def getFromDatasource() -> list:
+        pass
+    
+    @abstractmethod
+    def postToDatasource():
+        pass
 
 
 class Template(IModel):
     all_instances = []
-    def getCreateTableString() -> str:
-        return """CREATE TABLE IF NOT EXISTS Templates (
+    tableName = "Templates"
+    
+    @classmethod
+    def getCreateTableString(cls) -> str:
+        return f"""CREATE TABLE IF NOT EXISTS {cls.tableName} (
                 id INTEGER PRIMARY KEY NOT NULL,
                 name VARCHAR(100) NOT NULL,
                 content TEXT NOT NULL DEFAULT ''
             );"""
+            
+    @classmethod
+    def getTableName(cls) -> str:
+        return cls.tableName
     
     def __init__(self, title, path) -> None:
         self.title = title
@@ -36,14 +56,22 @@ class Template(IModel):
 
 class Attachment(IModel):
     all_instances = []
-    def getCreateTableString() -> str:
-        return """CREATE TABLE IF NOT EXISTS Attachments (
-	attachment_id INTEGER PRIMARY KEY NOT NULL,
-	name varchar(100) NOT NULL,
-	file_path varchar(255),
-	file binary DEFAULT ''
-);
-""" 
+    tableName = "Attachments"
+    
+    @classmethod
+    def getCreateTableString(cls) -> str:
+        return f"""CREATE TABLE IF NOT EXISTS {cls.tableName} (
+            attachment_id INTEGER PRIMARY KEY NOT NULL,
+            name varchar(100) NOT NULL,
+            file_path varchar(255),
+            file binary DEFAULT ''
+        );
+        """
+
+    @classmethod
+    def getTableName(cls) -> str:
+        return cls.tableName
+        
     def __init__(self, path, type) -> None:
         self.path = path
         self.type = type
@@ -57,13 +85,20 @@ class Attachment(IModel):
     
 class Contact(IModel):
     all_instances = []
-    def getCreateTableString() -> str:
-        return """CREATE TABLE IF NOT EXISTS Contacts (
+    tableName = "Contacts"
+    
+    @classmethod
+    def getCreateTableString(cls) -> str:
+        return f"""CREATE TABLE IF NOT EXISTS {cls.tableName} (
             email varchar(100) NOT NULL, 
             first_name varchar(50) NOT NULL, 
             last_name varchar(50) NOT NULL,
             PRIMARY KEY(email) 
             );"""
+
+    @classmethod
+    def getTableName(cls) -> str:
+        return cls.tableName
 
     def __init__(self, first_name, last_name, email) -> None:
         self.first_name = first_name
@@ -73,10 +108,29 @@ class Contact(IModel):
         
     def __str__(self) -> str:
         return f"Contact {self.first_name} {self.last_name}, {self.email}"
+    
+    # def insertContact(self, obj: Contact):
+    #     cur = con.cursor()
+    #     cur.execute("INSERT INTO Contacts VALUES(?, ?, ?)", (obj.first_name, obj.last_name, obj.email))
+    #     self.connection.commit()
+
+    # def getContacts() -> list[Contact]:
+    #     con = sqlite3.connect("localSqLite.db")
+    #     cur = con.cursor()
+    #     result = cur.execute("SELECT first_name, last_name, email from Contacts")
+    #     return parseContacts(result.fetchall())
+
+    # def parseContacts(rawData: list) -> list:
+    #     result = []
+    #     for c in rawData:
+    #         result.append(Contact(c[0], c[1], c[2]))
+    #     return result
 
   
 class User(IModel):
-    def getCreateTableString() -> str:
+    
+    @classmethod
+    def getCreateTableString(cls) -> str:
         return None
     
     def __init__(self, first_name, last_name, email, password) -> None:
@@ -87,17 +141,24 @@ class User(IModel):
  
 class Message(IModel, MIMEMultipart):
     all_instances = []
-    def getCreateTableString() -> str:
-        return """CREATE TABLE IF NOT EXISTS Messages (
-    message_id INTEGER PRIMARY KEY,
-    trigger_id INTEGER NOT NULL,
-    email varchar(100) NOT NULL,
-    template_id INTEGER NOT NULL,
-    sent_at TIMESTAMP,
-    FOREIGN KEY (trigger_id) REFERENCES Triggers(id),
-    FOREIGN KEY (email) REFERENCES Contacts(email),
-    FOREIGN KEY (template_id) REFERENCES Templates(id)
-);"""
+    tableName = "Messages"
+    
+    @classmethod
+    def getCreateTableString(cls) -> str:
+        return f"""CREATE TABLE IF NOT EXISTS {cls.tableName} (
+            message_id INTEGER PRIMARY KEY,
+            trigger_id INTEGER NOT NULL,
+            email varchar(100) NOT NULL,
+            template_id INTEGER NOT NULL,
+            sent_at TIMESTAMP,
+            FOREIGN KEY (trigger_id) REFERENCES Triggers(id),
+            FOREIGN KEY (email) REFERENCES Contacts(email),
+            FOREIGN KEY (template_id) REFERENCES Templates(id)
+        );"""
+
+    @classmethod
+    def getTableName(cls) -> str:
+        return cls.tableName
 
     def __init__(self, recipient: Contact, att: list[Attachment] = None) -> None:
         self.recipient = recipient

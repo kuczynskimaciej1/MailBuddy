@@ -1,18 +1,10 @@
-import sqlite3
-from DataSources.sqliteOperations import *
+import pytest
+from models import *
+from DataSources.dataSources import DatabaseHandler
+from models import Contact
 
-dbName = "localSqLite.db"
+@pytest.fixture
 
-# createDatabase(dbName)
-
-# con = sqlite3.connect(dbName)
-# cur = con.cursor()
-
-# res = cur.execute("SELECT name FROM sqlite_master")
-# print(res.fetchall())
-
-
-# from models import Contact
 
 insertContact(Contact(first_name="Adam", last_name="Adamski", email="adamski.a@adamski.ad"))
 # contacts = getContacts()

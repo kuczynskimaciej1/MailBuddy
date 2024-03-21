@@ -2,10 +2,15 @@ from MessagingService.senders import *
 from MessagingService.readers import *
 from UserInfo.LoginService import *
 from models import *
-from interface import AppUI
+# from interface import AppUI
 from DataSources.dataSources import DatabaseHandler
 
 if __name__ == "__main__":
+    dbname = "localSQLite.sqlite3"
+    db = DatabaseHandler(connectionString=dbname)
+    db.checkIntegrity()
+    
+    
     #ui = AppUI()
     #ui.prepareInterface()
     #ui.run()

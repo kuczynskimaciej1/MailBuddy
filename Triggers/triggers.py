@@ -2,14 +2,22 @@ from abc import abstractmethod
 from models import IModel
 
 class ITrigger(IModel):
-    def getCreateTableString() -> str:
-        return """CREATE TABLE IF NOT EXISTS "Triggers" (
+    tableName = "Triggers"
+    
+    
+    @classmethod
+    def getCreateTableString(cls) -> str:
+        return f"""CREATE TABLE IF NOT EXISTS {cls.tableName} (
             "id" int NOT NULL,
             "name" varchar(100) NOT NULL,
             "type" int NOT NULL,
             "script" text NOT NULL DEFAULT '',
             PRIMARY KEY ("id")
             );"""
+            
+    @classmethod
+    def getTableName(cls) -> str:
+        return cls.tableName
     
     @abstractmethod
     def CheckConditions():
