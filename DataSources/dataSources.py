@@ -1,7 +1,8 @@
 from abc import ABCMeta, abstractmethod
-from typing import Iterable
+from typing import Iterable, Optional
 from enum import Enum
 from pandas import read_csv, read_excel, DataFrame
+from models import IModel
 from .sqliteOperations import sqlite
 import re
 
@@ -19,7 +20,8 @@ class IDataSource(metaclass = ABCMeta):
         raise RuntimeError
     
 class DatabaseHandler(IDataSource):
-    def __init__(self, connectionString: str,  engine: SupportedDbEngines = SupportedDbEngines.SQLite) -> None:
+    def __init__(self, connectionString: str,  
+                 engine: SupportedDbEngines = SupportedDbEngines.SQLite) -> None:
         """
         Initializes handler, allowing query execution on provided server
         """
@@ -32,11 +34,11 @@ class DatabaseHandler(IDataSource):
         self.parameters = []
 
 
-    def checkIntegrity(self) -> None:
-        if self.dbEngineInstance.checkIntegrity() == False:
+    def checkIntegrity(self, expected: Iterable[IModel], additionalSetup) -> None:
+        if self.dbEngineInstance.checkIntegrity(expected) == False:
             print("Remaking db")
-            self.dbEngineInstance.createDatabase()
-            return
+            self.dbEngineInstance.createDatabase(expected, additionalSetup)
+            return None
         print("Database intact, proceeding")
         
     

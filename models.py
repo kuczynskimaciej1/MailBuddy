@@ -109,6 +109,14 @@ class Contact(IModel):
     def __str__(self) -> str:
         return f"Contact {self.first_name} {self.last_name}, {self.email}"
     
+
+    def getFromDatasource() -> list:
+        pass
+    
+
+    def postToDatasource():
+        pass
+    
     # def insertContact(self, obj: Contact):
     #     cur = con.cursor()
     #     cur.execute("INSERT INTO Contacts VALUES(?, ?, ?)", (obj.first_name, obj.last_name, obj.email))
