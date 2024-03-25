@@ -1,5 +1,5 @@
 import sqlite3
-from typing import Optional, Iterable
+from abc import Iterable
 from models import IModel
 
 class sqlite():
@@ -20,7 +20,7 @@ class sqlite():
             
         return True
     
-    def createDatabase(self, tableCreators: Iterable[IModel], additionalSetup: Optional[Iterable[str]] = []):
+    def createDatabase(self, tableCreators: Iterable[IModel], additionalSetup: Iterable[str] | None = []):
         con = sqlite3.connect(self.dbName)
         cur = con.cursor()
 
@@ -35,7 +35,7 @@ class sqlite():
         
         con.commit()
 
-    def FetchAll(self, query: str) -> Optional[str]:
+    def FetchAll(self, query: str) -> str | None:
         c = self.connection.cursor()
         result = c.execute(query)
         return result.fetchall()

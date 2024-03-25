@@ -2,7 +2,6 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from abc import ABCMeta, abstractmethod
-from typing import Type
 
 
 __all__ = ["Template", "Attachment", "Contact", "User", "Message"]
