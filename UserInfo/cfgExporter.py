@@ -56,7 +56,7 @@ class ConfigExporter():
         classes = modelClassNames
         
         for modelType in classes:
-            result.append(getattr(models, modelType).allInstances)
+            result.append(getattr(models, modelType).all_instances)
         
         return result
     

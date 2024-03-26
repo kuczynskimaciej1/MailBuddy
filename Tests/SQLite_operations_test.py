@@ -1,14 +1,13 @@
 import pytest
-from DataSources.sqliteOperations import sqlite
-from models import *
-from DataSources.dataSources import DatabaseHandler
-from models import Contact
-import sqlite3
 import os
+import sqlite3
+from models import *
+from DataSources.sqliteOperations import sqlite
+from DataSources.dataSources import DatabaseHandler
 
 
 localDbName = "localSQLite.sqlite3"
-insertCommand = "INSERT INTO Contacts VALUES(?, ?, ?)"
+insertCommand = "INSERT INTO Contacts (first_name, last_name, email) VALUES (?, ?, ?)"
 selectCommand = "SELECT email, first_name, last_name from Contacts where email = ?"
 
 @pytest.fixture
@@ -43,11 +42,11 @@ def test_contact_sqlite_insertable(recreateDatabase, contact1, sqliteConnection)
     sqliteConnection.cursor().execute(insertCommand, parameters)
     sqliteConnection.commit()
     
-    scur = sqliteConnection.cursor().execute(selectCommand, c.email)
+    scur = sqliteConnection.cursor().execute(selectCommand, (c.email, ))
     selectionResult = scur.fetchall()
     print(selectionResult)
     assert len(selectionResult) == 1, f"output: {selectionResult}, got {len(selectionResult)}"
-    assert selectionResult[0] == c.email, f"output: {selectionResult[0]}"
+    assert selectionResult[0][0] == c.email, f"output: {selectionResult[0]}"
     
 
 # def contact_sqlite_pk_unique_email():

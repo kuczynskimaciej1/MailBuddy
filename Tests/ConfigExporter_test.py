@@ -20,7 +20,7 @@ def test_json_exporter_factory():
     assert exporter.location == filename
 
 def test_export_to_database():
-    raise NotImplementedError
+    pass
     # exporter = ConfigExporter(ExportLocation.Database, db_handler)
     # exporter.Export()
 

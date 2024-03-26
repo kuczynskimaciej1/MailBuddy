@@ -1,5 +1,5 @@
 import sqlite3
-from abc import Iterable
+from collections.abc import Iterable
 from models import IModel
 
 class sqlite():

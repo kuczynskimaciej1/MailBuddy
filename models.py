@@ -99,7 +99,7 @@ class Contact(IModel):
     def getTableName(cls) -> str:
         return cls.tableName
 
-    def __init__(self, first_name, last_name, email) -> None:
+    def __init__(self, first_name: str, last_name: str, email: str) -> None:
         self.first_name = first_name
         self.last_name = last_name
         self.email = email
@@ -134,8 +134,8 @@ class Contact(IModel):
     #     return result
 
   
-class User(IModel):
-    
+class User():
+    all_instances = []
     @classmethod
     def getCreateTableString(cls) -> str:
         return None

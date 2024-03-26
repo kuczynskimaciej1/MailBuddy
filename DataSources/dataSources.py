@@ -1,4 +1,5 @@
-from abc import ABCMeta, abstractmethod, Iterable
+from abc import ABCMeta, abstractmethod
+from collections.abc import Iterable
 from enum import Enum
 from pandas import read_csv, read_excel, DataFrame
 from models import IModel
