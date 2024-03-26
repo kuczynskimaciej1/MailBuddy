@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractmethod
+from imaplib import *
 
 class IReader(metaclass=ABCMeta):
     @abstractmethod
@@ -14,5 +15,6 @@ class IReader(metaclass=ABCMeta):
 
     
 class IMAPReader(IReader):
-    def ReadAll() -> None:
+    def ReadAll(messages, limiter) -> None:
+        
         pass

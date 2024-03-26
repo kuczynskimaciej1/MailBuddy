@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractmethod
+from smtplib import *
 
 class ISender(metaclass=ABCMeta):
     @abstractmethod
@@ -15,4 +16,10 @@ class ISender(metaclass=ABCMeta):
     
 class SMTPSender(ISender):
     def Send() -> None:
+        smtp_host = "" #hostname
+        smtp_port = 123
+        server = SMTP_SSL(smtp_host, smtp_port)
+        server.connect(smtp_host, smtp_port)
+        server.ehlo()
+        server.login()
         pass
