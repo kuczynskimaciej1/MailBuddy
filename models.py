@@ -47,12 +47,16 @@ class Template(IModel):
 
     def __init__(self, title, path) -> None:
         self.title = title
-        self.content = MIMEText("", 'html')
-        self.path = ""
+        self.path = path
+        self.content = ""
         Template.all_instances.append(self)
         
-    def getFromDatasource(self):
-        return []  # Implementacja metody
+    def getFromDatasource(self) -> None:
+        """To bardzo wczesna wersja, prawdopodobnie się zmieni, trzeba będzie czytać z innego źródła niż plik czy coś
+        """
+        with open(self.path, 'r') as r:
+            self.content = r.read()
+        
     
     def postToDatasource(self):
         pass  # Implementacja metody
