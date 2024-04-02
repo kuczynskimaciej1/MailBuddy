@@ -22,4 +22,7 @@ class SMTPSender(ISender):
         server.connect(smtp_host, smtp_port)
         server.ehlo()
         server.login()
-        pass
+        
+# class MockSMTPSender(ISender):
+#     def __init__(self) -> None:
+        

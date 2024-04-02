@@ -35,10 +35,25 @@ if __name__ == "__main__":
     #ui.prepareInterface()
     #ui.run()
 
-    imap_reader = IMAPReader()
-    smtp_sender = SMTPSender()
+    imap_reader = IMAPReader.getGmailConfig(input("Gmail OAuth2 String"))
+    
+    
+    
+    # smtp_sender = SMTPSender()
 
     loginData = loginPrompt()
     user = m.User(loginData[2], loginData[3], loginData[0], loginData[1])
+    imap_reader.login(user.contact.email, user.password)
+        
     
+    # Get a list of all mailboxes
+    status, mailboxes = imap_reader.list()
+
+    # Print the list of mailboxes
+    print("Mailboxes:")
+    for mailbox in mailboxes:
+        print(mailbox.decode())
+
+    # Logout from the server
+    imap_reader.logout()
     
