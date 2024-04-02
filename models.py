@@ -51,6 +51,12 @@ class Template(IModel):
         self.content = MIMEText("", 'html')
         self.path = ""
         Template.all_instances.append(self)
+        
+    def getFromDatasource(self):
+        return []  # Implementacja metody
+    
+    def postToDatasource(self):
+        pass  # Implementacja metody
 
 
 class Attachment(IModel):
