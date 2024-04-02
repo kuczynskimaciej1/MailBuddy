@@ -3,7 +3,7 @@ from MessagingService.readers import *
 from UserInfo.LoginService import *
 import models as m
 from Triggers.triggers import ITrigger
-# from interface import AppUI
+from interface import AppUI
 from DataSources.dataSources import DatabaseHandler
 
 if __name__ == "__main__":
@@ -31,29 +31,29 @@ if __name__ == "__main__":
     
     db.checkIntegrity(tables, additionalSetup)
     
-    #ui = AppUI()
-    #ui.prepareInterface()
-    #ui.run()
+    ui = AppUI()
+    ui.prepareInterface()
+    ui.run()
 
-    imap_reader = IMAPReader.getGmailConfig(input("Gmail OAuth2 String"))
+    # imap_reader = IMAPReader.getGmailConfig(input("Gmail OAuth2 String"))
     
     
     
-    # smtp_sender = SMTPSender()
+    # # smtp_sender = SMTPSender()
 
-    loginData = loginPrompt()
-    user = m.User(loginData[2], loginData[3], loginData[0], loginData[1])
-    imap_reader.login(user.contact.email, user.password)
+    # loginData = loginPrompt()
+    # user = m.User(loginData[2], loginData[3], loginData[0], loginData[1])
+    # imap_reader.login(user.contact.email, user.password)
         
     
-    # Get a list of all mailboxes
-    status, mailboxes = imap_reader.list()
+    # # Get a list of all mailboxes
+    # status, mailboxes = imap_reader.list()
 
-    # Print the list of mailboxes
-    print("Mailboxes:")
-    for mailbox in mailboxes:
-        print(mailbox.decode())
+    # # Print the list of mailboxes
+    # print("Mailboxes:")
+    # for mailbox in mailboxes:
+    #     print(mailbox.decode())
 
-    # Logout from the server
-    imap_reader.logout()
+    # # Logout from the server
+    # imap_reader.logout()
     

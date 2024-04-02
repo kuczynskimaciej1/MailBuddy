@@ -45,6 +45,7 @@ class ConfigExporter():
         match self.export:
             case ExportLocation.Database:
                 assert isinstance(self.location, DatabaseHandler)
+                #TODO
                 
             case ExportLocation.JSON:
                 assert isinstance(self.location, str)
