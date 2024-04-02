@@ -29,7 +29,7 @@ class IMAPReader(IMAP4_SSL, IReader):
 
     @staticmethod
     def GenerateOAuth2String(username, access_token, base64_encode=True) -> bytes | str:
-        auth_string = f'user={username}\1auth=Bearer {access_token}\1\1'
+        auth_string = f'user={username}\001auth=Bearer {access_token}\001\001'.encode('utf-8')
         if base64_encode:
             auth_string = b64encode(auth_string)
         return auth_string
