@@ -23,6 +23,7 @@ class IMAPReader(IMAP4_SSL, IReader):
     def __init__(self, host: str = "", port: int = 993, *, ssl_context: ssl.SSLContext |
                  None = ssl.create_default_context(), timeout: float | None = None) -> None:
         super().__init__(host, port, ssl_context=ssl_context, timeout=timeout)
+        self.oauth2_access_token = ""
 
     def ReadAll(messages, limiter) -> None:
         pass
@@ -38,7 +39,6 @@ class IMAPReader(IMAP4_SSL, IReader):
         if self.oauth2_access_token:
             auth_string = IMAPReader.GenerateOAuth2String(user, self.oauth2_access_token, False)
             self.authenticate("XOAUTH2", lambda x: auth_string)
-            
         try:
             response = super().login(user, password)
         except IMAP4.error as e:
