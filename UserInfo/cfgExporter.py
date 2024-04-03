@@ -51,8 +51,8 @@ class ConfigExporter():
                 assert isinstance(self.location, str)
                 ConfigExporter.saveFile(ConfigExporter.__serializeJsonModelObjects(), self.location)
     
-    @classmethod
-    def __serializeJsonModelObjects(_) -> list:
+    @staticmethod
+    def __serializeJsonModelObjects() -> list:
         result = []
         classes = modelClassNames
         
