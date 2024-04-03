@@ -2,13 +2,11 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from abc import ABCMeta, abstractmethod
-from json import JSONEncoder
 import re
 from typing import Any
 
 
 __all__ = ["Template", "Attachment", "Contact", "User", "Message"]
-
 
 class IModel(metaclass=ABCMeta):
     @abstractmethod
@@ -30,11 +28,6 @@ class IModel(metaclass=ABCMeta):
     @abstractmethod
     def postToDatasource():
         pass
-
-
-class IModelEncoder(JSONEncoder):
-    def default(self, o: IModel) -> dict[str, Any]:
-        return o.__dict__
 
 class Template(IModel):
     all_instances = []
@@ -141,6 +134,11 @@ class Contact(IModel):
 
     def __str__(self) -> str:
         return f"Contact {self.first_name} {self.last_name}, {self.email}"
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Contact):
+            return NotImplemented
+        return self.email == other.email and self.first_name == other.first_name and self.last_name == other.last_name
 
     def getFromDatasource() -> list:
         pass

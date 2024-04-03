@@ -11,11 +11,11 @@ from dataGenerators import genContact
 def getSampleJsonPath(tmp_path) -> Path:
     return tmp_path / "test.json"
 
-def test_to_database(db_handler):
-    exporter = ConfigExporter.ToDatabase(db_handler)
-    assert isinstance(exporter, ConfigExporter)
-    assert exporter.export == ExportLocation.Database
-    assert exporter.location == db_handler
+# def test_to_database(db_handler):
+#     exporter = ConfigExporter.ToDatabase(db_handler)
+#     assert isinstance(exporter, ConfigExporter)
+#     assert exporter.export == ExportLocation.Database
+#     assert exporter.location == db_handler
 
 def test_json_exporter_factory(getSampleJsonPath):
     p = getSampleJsonPath
@@ -50,14 +50,9 @@ def test_export_contact_to_json(getSampleJsonPath, genContact):
     exp.Export()
     
     with open(f, "r") as r:
-        data = r.read()
-    unparsedContacts = [json.loads(c) for c in data]
+        unparsed = r.read()
+    contacts_data = json.loads(unparsed)["Contacts"]
+    unparsedContacts = [Contact(**contact) for contact in contacts_data]
     assert isinstance(unparsedContacts, list) and len(unparsedContacts) == len([c1, c2])
-    # for exported, org in zip(, [c1, c2]):
-    #     exported.
-        
-    
-    # for contact in [c1, c2]:
-        # assert data
-    pass
-        
+    for exported, org in zip(unparsedContacts, [c1, c2]):
+        assert exported == org

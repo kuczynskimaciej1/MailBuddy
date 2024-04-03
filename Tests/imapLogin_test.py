@@ -1,7 +1,10 @@
 import pytest
 from MessagingService.readers import IMAPReader
-from models import User
-from personalSecrets import *
+try:
+    from personalSecrets import *
+    secretsAvailable = True
+except ImportError:
+    secretsAvailable = False
 from dataGenerators import getGmailOAuth2Secret
 
 
@@ -16,6 +19,7 @@ def test_createImapReaderGmail(createImapReaderGmail):
     assert getattr(imap_reader, "port") != 0
 
 
+@pytest.mark.skipif(not secretsAvailable, reason="Personal secrets not provided")
 def test_loginInGmail(createImapReaderGmail, getUser):
     rdr = createImapReaderGmail
     u = getUser

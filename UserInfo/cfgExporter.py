@@ -1,6 +1,6 @@
 from enum import Enum
 import models
-from models import IModelEncoder, __all__ as modelClassNames
+from models import __all__ as modelClassNames
 from DataSources.dataSources import DatabaseHandler
 from pathlib import Path
 import json
@@ -53,21 +53,27 @@ class ConfigExporter():
     
     @staticmethod
     def __serializeJsonModelObjects() -> list:
-        result = []
+        result = {}
         classes = modelClassNames
         
         for modelType in classes:
-            result.append(getattr(models, modelType).all_instances)
+            concreteIModel = getattr(models, modelType)
+            try:
+                tmp_instances = concreteIModel.all_instances
+                if len(tmp_instances) > 0:
+                    # This should work as long as there are simple classes
+                    result[concreteIModel.tableName] = [i.__dict__ for i in tmp_instances]
+            except AttributeError as e:
+                print(e)
+                continue
         
         return result
     
     
-    def saveFile(input: list, location: str) -> None:
+    def saveFile(input: dict, location: str) -> None:
         try:
             with open(location, "x", encoding="UTF-8") as f:
-                for objects in input:
-                    # TODO add variable class name and parse all of these objs inside list
-                    [json.dump(IModelEncoder().encode(o.__dict__), f, indent=4) for o in objects]
+                json.dump(input, f, indent=4)
         except Exception as e:
             print(f"Error: {e}")
             raise e
