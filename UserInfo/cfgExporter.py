@@ -1,6 +1,6 @@
 from enum import Enum
 import models
-from models import __all__ as modelClassNames
+from models import IModelEncoder, __all__ as modelClassNames
 from DataSources.dataSources import DatabaseHandler
 from pathlib import Path
 import json
@@ -66,6 +66,8 @@ class ConfigExporter():
         try:
             with open(location, "x", encoding="UTF-8") as f:
                 for objects in input:
-                    json.dump(objects, f, indent=4)
+                    # TODO add variable class name and parse all of these objs inside list
+                    [json.dump(IModelEncoder().encode(o.__dict__), f, indent=4) for o in objects]
         except Exception as e:
             print(f"Error: {e}")
+            raise e

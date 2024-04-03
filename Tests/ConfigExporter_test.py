@@ -1,20 +1,11 @@
-from pathlib import Path
 import pytest
-from faker import Faker
+import json
+from pathlib import Path
 from DataSources.dataSources import DatabaseHandler
 from UserInfo.cfgExporter import ConfigExporter, ExportLocation
 from models import Contact
-from collections.abc import Callable
-
-
-
-@pytest.fixture
-def generate_contact() -> Callable[[], Contact]:
-    def _generator() -> Contact:
-        fake = Faker()
-        return Contact(fake.first_name(), fake.last_name(), fake.simple_profile()["mail"])
-    
-    return _generator
+from dataGenerators import genContact
+# from models import __all__ as modelClassNames
 
 @pytest.fixture
 def getSampleJsonPath(tmp_path) -> Path:
@@ -46,22 +37,26 @@ def test_export_to_json(getSampleJsonPath):
     
     with open(filename, "r") as r:
         assert isinstance(r.read(), str)
-    # Add assertions as needed
 
 
-def test_export_contact_to_json(getSampleJsonPath, generate_contact):
-    c1 = generate_contact()
-    c2 = generate_contact()
+def test_export_contact_to_json(getSampleJsonPath, genContact):
+    c1 = genContact()
+    c2 = genContact()
     assert c1 != c2
     f = getSampleJsonPath
     print(len(Contact.all_instances))
+    
     exp = ConfigExporter.ToJSON(str(f))
     exp.Export()
     
     with open(f, "r") as r:
         data = r.read()
-    assert isinstance(data, str)
-    print(data)
+    unparsedContacts = [json.loads(c) for c in data]
+    assert isinstance(unparsedContacts, list) and len(unparsedContacts) == len([c1, c2])
+    # for exported, org in zip(, [c1, c2]):
+    #     exported.
+        
+    
     # for contact in [c1, c2]:
         # assert data
     pass

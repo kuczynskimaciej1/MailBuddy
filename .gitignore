@@ -162,3 +162,5 @@ cython_debug/
 #.idea/
 .vscode/
 *.sqlite3
+# Used for testing purposes
+personalSecrets.py 

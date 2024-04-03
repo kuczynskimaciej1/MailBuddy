@@ -1,5 +1,5 @@
-from time import sleep
 import pytest
+from time import sleep
 import os
 import sqlite3
 from models import *

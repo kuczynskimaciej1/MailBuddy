@@ -1,16 +1,9 @@
 import pytest
-
 from MessagingService.readers import IMAPReader
 from models import User
+from personalSecrets import *
+from dataGenerators import getGmailOAuth2Secret
 
-
-@pytest.fixture
-def getUser() -> User:
-    return User("doesnt", "matter", "fillMe@gmail.com", "password")
-
-@pytest.fixture
-def getGmailOAuth2Secret() -> str:
-    return ""
 
 @pytest.fixture
 def createImapReaderGmail(secret: str=getGmailOAuth2Secret) -> IMAPReader:

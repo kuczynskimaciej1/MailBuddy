@@ -2,6 +2,9 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from abc import ABCMeta, abstractmethod
+from json import JSONEncoder
+import re
+from typing import Any
 
 
 __all__ = ["Template", "Attachment", "Contact", "User", "Message"]
@@ -28,6 +31,10 @@ class IModel(metaclass=ABCMeta):
     def postToDatasource():
         pass
 
+
+class IModelEncoder(JSONEncoder):
+    def default(self, o: IModel) -> dict[str, Any]:
+        return o.__dict__
 
 class Template(IModel):
     all_instances = []
@@ -56,7 +63,6 @@ class Template(IModel):
         """
         with open(self.path, 'r') as r:
             self.content = r.read()
-        
     
     def postToDatasource(self):
         pass  # Implementacja metody
@@ -105,14 +111,32 @@ class Contact(IModel):
             PRIMARY KEY(email)
             );"""
 
+    @staticmethod
+    def isEmail(candidate: str) -> bool:
+        if re.match(r"[^@]+@[^@]+\.[^@]+", candidate):
+            return True
+        return False
+
     @classmethod
     def getTableName(cls) -> str:
         return cls.tableName
 
     def __init__(self, first_name: str, last_name: str, email: str) -> None:
+        """Creates instance and adds it to all_instances
+        Args:
+            first_name (str): any string
+            last_name (str): any string
+            email (str): must match standard pattern x@y.z
+        Raises:
+            AttributeError: when email doesn't match standard pattern
+        """
+        if Contact.isEmail(email):
+            self.email = email
+        else:
+            raise AttributeError(f"{email} is not valid email")
         self.first_name = first_name
         self.last_name = last_name
-        self.email = email
+        
         Contact.all_instances.append(self)
 
     def __str__(self) -> str:
@@ -149,7 +173,7 @@ class User():
     def getCreateTableString(cls) -> str:
         return None
 
-    def __init__(self, first_name, last_name, email, password) -> None:
+    def __init__(self, first_name: str, last_name: str, email: str, password: str) -> None:
         self.contact = Contact(first_name, last_name, email)
         self.password = password
         User.all_instances.append(self)
