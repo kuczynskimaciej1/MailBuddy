@@ -2,8 +2,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from abc import ABCMeta, abstractmethod
+from pathlib import Path
 import re
-from typing import Any
 
 
 __all__ = ["Template", "Attachment", "Contact", "User", "Message"]
@@ -45,7 +45,7 @@ class Template(IModel):
     def getTableName(cls) -> str:
         return cls.tableName
 
-    def __init__(self, title, path) -> None:
+    def __init__(self, title: str, path: Path) -> None:
         self.title = title
         self.path = path
         self.content = ""
