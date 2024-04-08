@@ -19,8 +19,15 @@ class IDataSource(metaclass = ABCMeta):
     def GetData(self):
         raise RuntimeError
     
+    @abstractmethod
+    def LoadSavedState():
+        """Collect all data saved in data source and instantiate adjacent model objects
+        """
+        raise RuntimeError
+
+
 class DatabaseHandler(IDataSource):
-    def __init__(self, connectionString: str,  
+    def __init__(self, connectionString: str, tableCreators: Iterable[IModel],
                  engine: SupportedDbEngines = SupportedDbEngines.SQLite) -> None:
         """
         Initializes handler, allowing query execution on provided server
@@ -32,16 +39,24 @@ class DatabaseHandler(IDataSource):
                 raise NotImplementedError
         self.query = ""
         self.parameters = []
+        self.tableCreators = tableCreators
 
 
-    def checkIntegrity(self, expected: Iterable[IModel], additionalSetup) -> None:
-        if self.dbEngineInstance.checkIntegrity(expected) == False:
-            print("Remaking db")
-            self.dbEngineInstance.createDatabase(expected, additionalSetup)
-            return None
-        print("Database intact, proceeding")
+    def checkIntegrity(self, additionalSetup: Iterable[str]) -> bool:
+        """Searches if database contains expected tables, eventually creates missing tables
+
+        Args:
+            expected (Iterable[IModel]): IModels with tableName, on missing table also getCreateTableString()
+            additionalSetup (Iterable[str]): Queries with steps to perform if found missing tables
+
+        Returns:
+            bool: if found intact database
+        """
+        if self.dbEngineInstance.checkIntegrity(self.tableCreators) == False:
+            self.dbEngineInstance.createDatabase(self.tableCreators, additionalSetup)
+            return False
+        return True
         
-    
     
     def SetQuery(self, query: str, parameters: Iterable[object] = []) -> None:
         query = query.strip()
@@ -69,6 +84,15 @@ class DatabaseHandler(IDataSource):
     #     if len(parameters) != 0:
     #         self.parameters = parameters
 
+    def LoadSavedState(self) -> None:
+        """Collect all data saved in data source and instantiate adjacent model objects
+        """
+        for tC in self.tableCreators:
+            self.SetQuery(f"EXEC {tC.tableName}_load;")
+            result = self.GetData()
+            for readObj in result:
+                tC(**readObj)
+    
 
     def GetData(self) -> str:
         # TODO pewnie będzie trzeba dopisać później na mniejsze fetche
@@ -80,10 +104,7 @@ class DatabaseHandler(IDataSource):
         self.parameters = []
         
         return result
-        
     
-    def GetData(self):
-        pass
 
 
 class XLSXHandler(IDataSource):

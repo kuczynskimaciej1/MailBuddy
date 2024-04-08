@@ -45,10 +45,9 @@ class Template(IModel):
     def getTableName(cls) -> str:
         return cls.tableName
 
-    def __init__(self, title: str, path: Path) -> None:
-        self.title = title
-        self.path = path
-        self.content = ""
+    def __init__(self, name: str, content: str) -> None:
+        self.name = name
+        self.content = content
         Template.all_instances.append(self)
         
     def getFromDatasource(self) -> None:

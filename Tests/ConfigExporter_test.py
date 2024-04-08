@@ -11,11 +11,6 @@ from dataGenerators import genContact
 def getSampleJsonPath(tmp_path) -> Path:
     return tmp_path / "test.json"
 
-# def test_to_database(db_handler):
-#     exporter = ConfigExporter.ToDatabase(db_handler)
-#     assert isinstance(exporter, ConfigExporter)
-#     assert exporter.export == ExportLocation.Database
-#     assert exporter.location == db_handler
 
 def test_json_exporter_factory(getSampleJsonPath):
     p = getSampleJsonPath
@@ -24,15 +19,12 @@ def test_json_exporter_factory(getSampleJsonPath):
     assert exporter.export == ExportLocation.JSON
     assert exporter.location == p
 
-def test_export_to_database():
-    pass
-    # exporter = ConfigExporter(ExportLocation.Database, db_handler)
-    # exporter.Export()
 
 def test_export_to_json(getSampleJsonPath):
     filename = getSampleJsonPath
     exporter = ConfigExporter.ToJSON(str(filename))
     exporter.Export()
+    filename = Path(exporter.location)
     assert filename.exists()
     
     with open(filename, "r") as r:
@@ -56,3 +48,10 @@ def test_export_contact_to_json(getSampleJsonPath, genContact):
     assert isinstance(unparsedContacts, list) and len(unparsedContacts) == len([c1, c2])
     for exported, org in zip(unparsedContacts, [c1, c2]):
         assert exported == org
+
+
+# def test_to_database(db_handler):
+#     exporter = ConfigExporter.ToDatabase(db_handler)
+#     assert isinstance(exporter, ConfigExporter)
+#     assert exporter.export == ExportLocation.Database
+#     assert exporter.location == db_handler
