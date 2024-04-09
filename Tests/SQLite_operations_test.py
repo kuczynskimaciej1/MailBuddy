@@ -1,4 +1,5 @@
 import pytest
+from time import sleep
 import os
 import sqlite3
 from models import *
@@ -21,20 +22,34 @@ def sqliteConnection() -> sqlite3.Connection:
 @pytest.fixture
 def dropDatabase() -> bool:
     if os.path.exists(localDbName):
-        os.remove(path=localDbName)
-        return True
+        attempt = 0
+        while(attempt < 5):
+            try:
+                os.remove(path=localDbName)
+                return True
+            except PermissionError:
+                sleep(1)  #TODO Na pewno da się lepiej!
+                attempt += 1
     return False
+            
+    
         
 @pytest.fixture
-def createDatabase() -> bool:
+def createDatabase(request) -> bool:
     testHandler = sqlite(localDbName)
-    testHandler.createDatabase([Contact])
+    testHandler.createDatabase(request.param["table_classes"])
     return True
     
 @pytest.fixture
 def recreateDatabase(dropDatabase, createDatabase)-> bool:
     return dropDatabase and createDatabase
 
+
+@pytest.mark.parametrize(
+    "createDatabase",
+    [{"table_classes": [Contact]}],
+    indirect=True
+)
 def test_contact_sqlite_insertable(recreateDatabase, contact1, sqliteConnection):
     c = contact1
     parameters = (c.first_name, c.last_name, c.email)
