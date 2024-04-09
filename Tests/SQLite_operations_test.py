@@ -1,23 +1,22 @@
 import pytest
 from time import sleep
 import os
-import sqlite3
-from models import *
-from DataSources.sqliteOperations import sqlite
+import sqlite3 # TODO to be changed into SQLAlchemy
+from models import Contact
+from dataGenerators import genContact
+# from DataSources.sqliteOperations import sqlite
 from DataSources.dataSources import DatabaseHandler
 
 
 localDbName = "localSQLite.sqlite3"
+dbURL = f"sqlite:///{localDbName}.db"
+
 insertCommand = "INSERT INTO Contacts (first_name, last_name, email) VALUES (?, ?, ?)"
 selectCommand = "SELECT email, first_name, last_name from Contacts where email = ?"
 
 @pytest.fixture
-def contact1() -> Contact:
-    return Contact("Adam", "Adamski", "adamski.a@aa.aa") # Contact("Wojciech", "Wojciechowski", "ww@ww.ww")]
-    
-@pytest.fixture
-def sqliteConnection() -> sqlite3.Connection:
-    return sqlite3.connect(localDbName)
+def getDatabaseHandler(request) -> DatabaseHandler:
+    return DatabaseHandler(dbURL, (request["table_classes"]))
 
 @pytest.fixture
 def dropDatabase() -> bool:
@@ -31,38 +30,32 @@ def dropDatabase() -> bool:
                 sleep(1)  #TODO Na pewno da się lepiej!
                 attempt += 1
     return False
-            
-    
-        
+
 @pytest.fixture
 def createDatabase(request) -> bool:
-    testHandler = sqlite(localDbName)
-    testHandler.createDatabase(request.param["table_classes"])
+    getDatabaseHandler(request.param["table_classes"])
     return True
     
 @pytest.fixture
 def recreateDatabase(dropDatabase, createDatabase)-> bool:
     return dropDatabase and createDatabase
 
-
 @pytest.mark.parametrize(
-    "createDatabase",
+    ["createDatabase", "getDatabaseHandler"],
     [{"table_classes": [Contact]}],
     indirect=True
 )
-def test_contact_sqlite_insertable(recreateDatabase, contact1, sqliteConnection):
-    c = contact1
-    parameters = (c.first_name, c.last_name, c.email)
+def test_contact_sqlite_insertable(recreateDatabase, genContact, getDatabaseHandler):
+    c = genContact()
+    dbh = getDatabaseHandler
+    with dbh.dbEngineInstance as engine:
+        engine.add(c)
+        engine.commit()
     
-    sqliteConnection.cursor().execute(insertCommand, parameters)
-    sqliteConnection.commit()
+    with dbh.dbEngineInstance as engine:
+        selectionResult = engine.query(Contact).filter_by(email=c.email).all()
     
-    scur = sqliteConnection.cursor().execute(selectCommand, (c.email, ))
-    selectionResult = scur.fetchall()
     print(selectionResult)
     assert len(selectionResult) == 1, f"output: {selectionResult}, got {len(selectionResult)}"
     assert selectionResult[0][0] == c.email, f"output: {selectionResult[0]}"
-    
 
-# def contact_sqlite_pk_unique_email():
-    
