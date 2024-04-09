@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 import tkinter as tk
 from tkinter import simpledialog
+from tkinter import ttk
 
 class AppUI():
     def __init__(self) -> None:
@@ -173,20 +174,45 @@ class AppUI():
 
     def insert_placeholder(self, template_text):
         placeholder_text = "_____"
-        
+
+        def on_placeholder_selection(event):
+            selected_placeholder = self.current_combo.get()
+            if selected_placeholder:
+                selected_text = template_text.tag_ranges(tk.SEL)
+                if selected_text:
+                    template_text.delete(selected_text[0], selected_text[1])
+                template_text.insert(tk.INSERT, selected_placeholder)
+
+        def hide_combobox():
+            if self.current_combo:
+                self.current_combo.place_forget()
+
+        def show_placeholder_menu(event):
+            hide_combobox()
+            self.current_combo = ttk.Combobox(template_text, values=placeholders)
+            self.current_combo.bind("<<ComboboxSelected>>", on_placeholder_selection)
+            self.current_combo.place(x=event.x_root, y=event.y_root)
+            self.current_combo.focus_set()
+            # Dodanie przycisku "x" do zamknięcia comboboxa
+            close_button = tk.Button(self.current_combo, text="x", command=hide_combobox)
+            close_button.place(relx=0, rely=0, anchor="nw")
+
         template_text.insert(tk.INSERT, placeholder_text)
-        
         template_text.tag_configure("placeholder", background="lightgreen")
-        
+
+        placeholders = ["pan", "pani", "adam", "zbigniew"]
+        if not hasattr(self, 'current_combo'):
+            self.current_combo = None
+
+        template_text.bind("<Button-3>", show_placeholder_menu)
+
         start_index = "1.0"
         while True:
             start_index = template_text.search(placeholder_text, start_index, stopindex=tk.END)
             if not start_index:
                 break
             end_index = template_text.index(f"{start_index}+{len(placeholder_text)}c")
-            
             template_text.tag_add("placeholder", start_index, end_index)
-            
             start_index = end_index
 
     def dodaj_szablon(self):
