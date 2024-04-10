@@ -194,7 +194,7 @@ class AppUI():
             self.current_combo.place(x=event.x_root, y=event.y_root)
             self.current_combo.focus_set()
             # Dodanie przycisku "x" do zamknięcia comboboxa
-            close_button = tk.Button(self.current_combo, text="x", command=hide_combobox)
+            close_button = tk.Button(self.current_combo, text="X", command=hide_combobox, bg="white")
             close_button.place(relx=0, rely=0, anchor="nw")
 
         template_text.insert(tk.INSERT, placeholder_text)
