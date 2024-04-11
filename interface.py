@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 import tkinter as tk
 from tkinter import simpledialog
+from tkinter import ttk
 
 class AppUI():
     def __init__(self) -> None:
@@ -18,6 +19,7 @@ class AppUI():
         self.__create_mailing_group_pane()
         self.__create_template_pane()
         self.__create_mail_input_pane()
+
 
     def run(self):
         self.root.mainloop()
@@ -72,10 +74,10 @@ class AppUI():
         [lb.insert(tk.END, i) for i in content]
 
     def __add_template_clicked(self):
-        tresc_szablonu = simpledialog.askstring("Nowy szablon", "Wpisz treść szablonu:")
-        if tresc_szablonu:
-            self.add_template(tresc_szablonu)
-    
+        # tresc_szablonu = simpledialog.askstring("Nowy szablon", "Wpisz treść szablonu:")
+        # if tresc_szablonu:
+        #     self.add_template(tresc_szablonu)
+        self.show_template_window()
         
     def __create_navigation(self):
         navigation_frame = tk.Frame(self.root, bg="lightblue")
@@ -112,15 +114,16 @@ class AppUI():
         notifications_frame.pack(side=tk.LEFT, padx=10, pady=10, fill=tk.BOTH, expand=True, ipadx=5, ipady=5)
         notifications_label.pack(fill=tk.BOTH, expand=True)
 
+
     def __create_mailing_group_pane(self):
-        groups_frame = tk.Frame(self.root, bg="lightblue", width=200, height=100, relief=tk.RIDGE, borderwidth=2)
-        grupy_label = tk.Label(groups_frame, text="Grupy mailowe", bg="lightblue")
-        grupy_listbox = tk.Listbox(groups_frame, bg="lightblue", fg="black")
-        
-        groups_frame.pack(side=tk.LEFT, padx=10, pady=10, fill=tk.BOTH, expand=True, ipadx=5, ipady=5)
-        grupy_label.pack()
-        grupy_listbox.pack(fill=tk.BOTH, expand=True)
-        grupy_listbox.bind('<Double-Button-1>', lambda event: self.edytuj_grupe())
+            groups_frame = tk.Frame(self.root, bg="lightblue", width=200, height=100, relief=tk.RIDGE, borderwidth=2)
+            grupy_label = tk.Label(groups_frame, text="Grupy mailowe", bg="lightblue")
+            grupy_listbox = tk.Listbox(groups_frame, bg="lightblue", fg="black")
+            
+            groups_frame.pack(side=tk.LEFT, padx=10, pady=10, fill=tk.BOTH, expand=True, ipadx=5, ipady=5)
+            grupy_label.pack()
+            grupy_listbox.pack(fill=tk.BOTH, expand=True)
+            grupy_listbox.bind('<Double-Button-1>', lambda event: self.edytuj_grupe())
 
     def __create_template_pane(self):
         templates_frame = tk.Frame(self.root, bg="lightblue", width=200, height=100, relief=tk.RIDGE, borderwidth=2)
@@ -144,4 +147,76 @@ class AppUI():
         self.entry_text.pack(fill=tk.BOTH, expand=True)
         entry_adres_label.pack(side=tk.TOP, padx=5, pady=5)
         entry_adres.pack(side=tk.TOP, padx=5, pady=5, fill=tk.X)
+
+    def show_template_window(self):
+        template_window = tk.Toplevel(self.root)
+        template_window.title("Stwórz szablon")
+        
+        name_label = tk.Label(template_window, text="Nazwa szablonu:", bg="lightblue")
+        name_label.grid(row=0, column=0, padx=5, pady=5)
+        
+        name_entry = tk.Entry(template_window, bg="white", fg="black")
+        name_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+
+        template_text = tk.Text(template_window, bg="lightblue", fg="black", wrap=tk.WORD)
+        template_text.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky="nsew")
+        
+        btn_save = tk.Button(template_window, text="Zapisz", bg="lightblue", fg="black", command=lambda: self.save_template(name_entry.get(), template_text.get(1.0, tk.END)))
+        btn_save.grid(row=2, column=0, padx=5, pady=5, sticky="e")
+
+        btn_insert_placeholder = tk.Button(template_window, text="Wstaw luke", bg="lightblue", fg="black", command=lambda: self.insert_placeholder(template_text))
+        btn_insert_placeholder.grid(row=2, column=1, padx=5, pady=5, sticky="w")
+
+    def save_template(self, template_name, template_content):
+        # Tutaj możesz zapisać nazwę i zawartość szablonu, na przykład do pliku lub bazy danych
+        print("Nazwa szablonu:", template_name)
+        print("Zawartość szablonu:", template_content)
+
+    def insert_placeholder(self, template_text):
+        placeholder_text = "_____"
+
+        def on_placeholder_selection(event):
+            selected_placeholder = self.current_combo.get()
+            if selected_placeholder:
+                selected_text = template_text.tag_ranges(tk.SEL)
+                if selected_text:
+                    template_text.delete(selected_text[0], selected_text[1])
+                template_text.insert(tk.INSERT, selected_placeholder)
+
+        def hide_combobox():
+            if self.current_combo:
+                self.current_combo.place_forget()
+
+        def show_placeholder_menu(event):
+            hide_combobox()
+            self.current_combo = ttk.Combobox(template_text, values=placeholders)
+            self.current_combo.bind("<<ComboboxSelected>>", on_placeholder_selection)
+            self.current_combo.place(x=event.x_root, y=event.y_root)
+            self.current_combo.focus_set()
+            # Dodanie przycisku "x" do zamknięcia comboboxa
+            close_button = tk.Button(self.current_combo, text="X", command=hide_combobox, bg="white")
+            close_button.place(relx=0, rely=0, anchor="nw")
+
+        template_text.insert(tk.INSERT, placeholder_text)
+        template_text.tag_configure("placeholder", background="lightgreen")
+
+        placeholders = ["pan", "pani", "adam", "zbigniew"]
+        if not hasattr(self, 'current_combo'):
+            self.current_combo = None
+
+        template_text.bind("<Button-3>", show_placeholder_menu)
+
+        start_index = "1.0"
+        while True:
+            start_index = template_text.search(placeholder_text, start_index, stopindex=tk.END)
+            if not start_index:
+                break
+            end_index = template_text.index(f"{start_index}+{len(placeholder_text)}c")
+            template_text.tag_add("placeholder", start_index, end_index)
+            start_index = end_index
+
+    def dodaj_szablon(self):
+        tresc_szablonu = simpledialog.askstring("Nowy szablon", "Wpisz treść szablonu:")
+        if tresc_szablonu:
+            self.szablony.append(tresc_szablonu)
 
