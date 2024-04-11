@@ -45,26 +45,36 @@ class ConfigExporter():
         match self.export:
             case ExportLocation.Database:
                 assert isinstance(self.location, DatabaseHandler)
+                #TODO
                 
             case ExportLocation.JSON:
                 assert isinstance(self.location, str)
                 ConfigExporter.saveFile(ConfigExporter.__serializeJsonModelObjects(), self.location)
     
-    @classmethod
-    def __serializeJsonModelObjects(_) -> list:
-        result = []
+    @staticmethod
+    def __serializeJsonModelObjects() -> list:
+        result = {}
         classes = modelClassNames
         
         for modelType in classes:
-            result.append(getattr(models, modelType).all_instances)
+            concreteIModel = getattr(models, modelType)
+            try:
+                tmp_instances = concreteIModel.all_instances
+                if len(tmp_instances) > 0:
+                    # This should work as long as there are simple classes
+                    # _sa_instance_state is related to declarative_base inheritance, its not needed in our context
+                    result[concreteIModel.__tablename__] = [{k: v for k, v in i.__dict__.items() if k != '_sa_instance_state'} for i in tmp_instances]
+            except AttributeError as e:
+                print(e)
+                continue
         
         return result
     
     
-    def saveFile(input: list, location: str) -> None:
+    def saveFile(input: dict, location: str) -> None:
         try:
             with open(location, "x", encoding="UTF-8") as f:
-                for objects in input:
-                    json.dump(objects, f, indent=4)
+                json.dump(input, f, indent=4)
         except Exception as e:
             print(f"Error: {e}")
+            raise e
