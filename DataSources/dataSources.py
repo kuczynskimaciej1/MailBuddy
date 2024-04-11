@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable
 from enum import Enum
+from sqlite3 import OperationalError
 import sys
 from pandas import read_csv, read_excel, DataFrame
 import models
@@ -8,6 +9,7 @@ import models
 import sqlalchemy as alchem
 import sqlalchemy.orm as orm
 import re
+from itertools import chain
 
 class SupportedDbEngines(Enum):
     SQLite=1
@@ -71,12 +73,34 @@ class DatabaseHandler(IDataSource):
         
         if missing_tables:
             print(f"The following tables are missing in the database: {', '.join(missing_tables)}")
-            for table_name in missing_tables:
-                # TODO to pewnie też da się zrobić lepiej
-                tableClass = next((cl for cl in self.tableCreators if cl.__tablename__ == table_name), None)
-                tableClass.__table__.create(self.dbEngineInstance)
+            self.instantiateClasses(missing_tables, additionalSetup)
             return False
         return True
+
+
+    def instantiateClasses(self, missing_tables: list[str] | list[models.IModel], 
+                           additionalSetup: Iterable[str] | Iterable[alchem.Table] = []) -> None:
+        for table_name in missing_tables:
+            # TODO to pewnie też da się zrobić lepiej
+            if isinstance(table_name, str):
+                tableClass = next(
+                    (cl for cl in self.tableCreators if cl.__tablename__ == table_name),
+                    None)
+                
+                if not tableClass:
+                    tableClass = next(
+                        (cl for cl in additionalSetup if cl.name == table_name),
+                        None)
+                    tableClass.metadata.create_all(self.dbEngineInstance)
+                    return
+                
+                tableClass.__table__.create(self.dbEngineInstance)
+                
+            elif issubclass(table_name, models.IModel):
+                table_name.__table__.create(self.dbEngineInstance)
+            else:
+                raise AttributeError(f"{table_name} is not name of table or IModel subclass")
+            
 
     def LoadSavedState(self) -> None:
         """Collect all data saved in data source and instantiate adjacent model objects

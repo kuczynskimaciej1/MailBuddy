@@ -6,17 +6,15 @@ from models import Contact
 from dataGenerators import genContact
 # from DataSources.sqliteOperations import sqlite
 from DataSources.dataSources import DatabaseHandler
+from sqlalchemy.orm import sessionmaker
 
 
 localDbName = "localSQLite.sqlite3"
-dbURL = f"sqlite:///{localDbName}.db"
-
-insertCommand = "INSERT INTO Contacts (first_name, last_name, email) VALUES (?, ?, ?)"
-selectCommand = "SELECT email, first_name, last_name from Contacts where email = ?"
+dbURL = f"sqlite:///{localDbName}"
 
 @pytest.fixture
 def getDatabaseHandler(request) -> DatabaseHandler:
-    return DatabaseHandler(dbURL, (request["table_classes"]))
+    return DatabaseHandler(dbURL, [])
 
 @pytest.fixture
 def dropDatabase() -> bool:
@@ -33,7 +31,8 @@ def dropDatabase() -> bool:
 
 @pytest.fixture
 def createDatabase(request) -> bool:
-    getDatabaseHandler(request.param["table_classes"])
+    dbh = DatabaseHandler(dbURL, (request.param["table_classes"]))
+    dbh.instantiateClasses(request.param["table_classes"])
     return True
     
 @pytest.fixture
@@ -41,21 +40,26 @@ def recreateDatabase(dropDatabase, createDatabase)-> bool:
     return dropDatabase and createDatabase
 
 @pytest.mark.parametrize(
-    ["createDatabase", "getDatabaseHandler"],
+    "createDatabase",
     [{"table_classes": [Contact]}],
     indirect=True
 )
 def test_contact_sqlite_insertable(recreateDatabase, genContact, getDatabaseHandler):
     c = genContact()
     dbh = getDatabaseHandler
-    with dbh.dbEngineInstance as engine:
-        engine.add(c)
-        engine.commit()
+    engine = dbh.dbEngineInstance
     
-    with dbh.dbEngineInstance as engine:
-        selectionResult = engine.query(Contact).filter_by(email=c.email).all()
+    Session = sessionmaker(bind=engine)
+    with Session() as session:
+        session.add(c)
+        session.commit()
+        session.refresh(c)
+    
+    
+    with Session() as session:
+        selectionResult = session.query(Contact).filter_by(email=c.email).all()
     
     print(selectionResult)
     assert len(selectionResult) == 1, f"output: {selectionResult}, got {len(selectionResult)}"
-    assert selectionResult[0][0] == c.email, f"output: {selectionResult[0]}"
+    assert selectionResult[0].email == c.email, f"output: {selectionResult[0]}"
 

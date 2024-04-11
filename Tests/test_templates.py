@@ -4,11 +4,6 @@ import os
 import sqlite3
 from SQLite_operations_test import *
 from models import Template
-from DataSources.sqliteOperations import sqlite
-
-# localDbName = "test_localSQLite.sqlite3"
-insertCommand = "INSERT INTO Templates (name, content) VALUES (?, ?)"
-selectCommand = "SELECT name, content FROM Templates WHERE name = ?"
 
 testSamplesPath = os.path.join(os.getcwd(), "Tests/Samples")
 
@@ -22,32 +17,33 @@ testSamplesPath = os.path.join(os.getcwd(), "Tests/Samples")
         "Template 5": "test_template_5.html"
     }.items()])
 def getTemplate(request) -> Template:
-    result = Template(request.param[0], request.param[1])
-    result.getFromDatasource()
+    with open(request.param[1], "rb") as rb:
+        result = Template(request.param[0], rb.read())
     return result
 
-def test_samples_exist(getTemplate):
-    t = getTemplate
-    assert Path(t.path).exists(), f"File {t.path} does not exist!"
-    
-    with open(t.path) as r:
-        assert r.read() != ""
 
 @pytest.mark.parametrize(
     "createDatabase",
     [{"table_classes": [Template]}],
     indirect=True
 )
-def test_template_sqlite_insertable(recreateDatabase, sqliteConnection, getTemplate):
+def test_template_sqlite_insertable(recreateDatabase, getDatabaseHandler, getTemplate):
     t = getTemplate
-    parameters = (t.title, str(t.content))
+    dbh = getDatabaseHandler
+    engine = dbh.dbEngineInstance
+    
+    Session = sessionmaker(bind=engine)
+    with Session() as session:
+        session.add(t)
+        session.commit()
+        session.refresh(t)
 
-    sqliteConnection.cursor().execute(insertCommand, parameters)
-    sqliteConnection.commit()
-
-    cursor = sqliteConnection.cursor().execute(selectCommand, (t.title, ))
-    result = cursor.fetchone()
-
-    assert result is not None
-    assert result[0] == t.title
-    assert result[1] == str(t.content)
+    with Session() as session:
+        selectionResult: list[Template] = session.query(Template).filter_by(name=t.name).all()
+    
+    assert selectionResult is not None
+    assert len(selectionResult) == 1
+    
+    retrievedTemplate: Template = selectionResult[0]
+    assert retrievedTemplate.name == t.name
+    assert retrievedTemplate.content == t.content
