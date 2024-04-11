@@ -1,23 +1,14 @@
-from abc import abstractmethod
-from models import IModel
+from abc import abstractmethod, ABCMeta
+from sqlalchemy import Column, Integer, String
+from sqlalchemy.orm import declarative_base
 
-class ITrigger(IModel):
-    tableName = "Triggers"
+class ITrigger(declarative_base()):
+    __tablename__ = "Triggers"
     
-    
-    @classmethod
-    def getCreateTableString(cls) -> str:
-        return f"""CREATE TABLE IF NOT EXISTS {cls.tableName} (
-            "id" int NOT NULL,
-            "name" varchar(100) NOT NULL,
-            "type" int NOT NULL,
-            "script" text NOT NULL DEFAULT '',
-            PRIMARY KEY ("id")
-            );"""
-            
-    @classmethod
-    def getTableName(cls) -> str:
-        return cls.tableName
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), nullable=False)
+    type = Column(Integer, nullable=False)
+    script = Column(String, nullable=False)
     
     @abstractmethod
     def CheckConditions():
@@ -28,12 +19,12 @@ class ITrigger(IModel):
         raise AssertionError
     
     @classmethod
-    def __subclasshook__(cls, subclass: type) -> bool:
+    def __subclasshook__(cls, subclass) -> bool:
         return (hasattr(subclass, 'CheckConditions') and 
                 callable(subclass.CheckConditions) and 
                 hasattr(subclass, 'Run') and 
                 callable(subclass.Run))
 
-class Win32Trigger(ITrigger):
+class Win32Trigger(ITrigger, ):
     def __init__(self) -> None:
         pass

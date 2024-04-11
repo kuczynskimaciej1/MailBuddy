@@ -20,7 +20,7 @@ def test_createImapReaderGmail(createImapReaderGmail):
 
 
 @pytest.mark.skipif(not secretsAvailable, reason="Personal secrets not provided")
-def test_loginInGmail(createImapReaderGmail, getUser):
+def test_loginInGmail(createImapReaderGmail):
     rdr = createImapReaderGmail
-    u = getUser
+    u = getSecretUser()
     rdr.login(user=u.contact.email, password=u.password)

@@ -62,7 +62,8 @@ class ConfigExporter():
                 tmp_instances = concreteIModel.all_instances
                 if len(tmp_instances) > 0:
                     # This should work as long as there are simple classes
-                    result[concreteIModel.tableName] = [i.__dict__ for i in tmp_instances]
+                    # _sa_instance_state is related to declarative_base inheritance, its not needed in our context
+                    result[concreteIModel.__tablename__] = [{k: v for k, v in i.__dict__.items() if k != '_sa_instance_state'} for i in tmp_instances]
             except AttributeError as e:
                 print(e)
                 continue

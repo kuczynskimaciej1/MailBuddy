@@ -1,48 +1,60 @@
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable
 from enum import Enum
+from sqlite3 import OperationalError
+import sys
 from pandas import read_csv, read_excel, DataFrame
-from models import IModel
-from .sqliteOperations import sqlite
+import models
+# from .sqliteOperations import sqlite
+import sqlalchemy as alchem
+import sqlalchemy.orm as orm
 import re
+from itertools import chain
 
 class SupportedDbEngines(Enum):
     SQLite=1
 
-class IDataSource(metaclass = ABCMeta):
+class IDataSource():
     @classmethod
     def __subclasshook__(cls, subclass: type) -> bool:
         return (hasattr(subclass, 'GetData') and 
-                callable(subclass.GetData))
+                callable(subclass.GetData) and
+                hasattr(subclass, 'checkIntegrity') and 
+                callable(subclass.checkIntegrity) and
+                hasattr(subclass, 'LoadSavedState') and 
+                callable(subclass.LoadSavedState)
+                )
         
     @abstractmethod
     def GetData(self):
         raise RuntimeError
     
     @abstractmethod
-    def LoadSavedState():
+    def checkIntegrity(self):
+        raise RuntimeError
+    
+    @abstractmethod
+    def LoadSavedState(self):
         """Collect all data saved in data source and instantiate adjacent model objects
         """
         raise RuntimeError
 
 
 class DatabaseHandler(IDataSource):
-    def __init__(self, connectionString: str, tableCreators: Iterable[IModel],
+    def __init__(self, connectionString: str, tableCreators: Iterable[models.IModel],
                  engine: SupportedDbEngines = SupportedDbEngines.SQLite) -> None:
         """
         Initializes handler, allowing query execution on provided server
         """
         match engine:
             case SupportedDbEngines.SQLite:
-                self.dbEngineInstance = sqlite(connectionString)
+                self.dbEngineInstance = alchem.create_engine(connectionString)
             case _:
                 raise NotImplementedError
-        self.query = ""
-        self.parameters = []
         self.tableCreators = tableCreators
 
 
-    def checkIntegrity(self, additionalSetup: Iterable[str]) -> bool:
+    def checkIntegrity(self, additionalSetup: Iterable[str] = []) -> bool:
         """Searches if database contains expected tables, eventually creates missing tables
 
         Args:
@@ -52,59 +64,56 @@ class DatabaseHandler(IDataSource):
         Returns:
             bool: if found intact database
         """
-        if self.dbEngineInstance.checkIntegrity(self.tableCreators) == False:
-            self.dbEngineInstance.createDatabase(self.tableCreators, additionalSetup)
+        
+        md = alchem.MetaData()
+        md.reflect(bind=self.dbEngineInstance)
+        existing_tables = md.tables.keys()
+        expected = [cl.__tablename__ for cl in self.tableCreators] + [t.name for t in additionalSetup]
+        missing_tables = set(expected) - set(existing_tables)
+        
+        if missing_tables:
+            print(f"The following tables are missing in the database: {', '.join(missing_tables)}")
+            self.instantiateClasses(missing_tables, additionalSetup)
             return False
         return True
-        
-    
-    def SetQuery(self, query: str, parameters: Iterable[object] = []) -> None:
-        query = query.strip()
-        
-        firstSemicolonIndex = query.index(";")
-        if firstSemicolonIndex != len(query) - 1:
-            raise AttributeError(f"This method executes only single statement queries, found ; on {firstSemicolonIndex}")
-                
-        parameterSearchPattern = r'\(\?(?:,\s*\?\s*)*\)'
-        match = re.match(parameterSearchPattern, query)
-        if match:
-            question_marks = match.group(1).count('?')
-            if len(parameters) != question_marks:
-                raise AttributeError(f"You provided {len(parameters)}, expected {question_marks}")
-            else:
-                self.parameters = parameters
-        
-        self.query = query
 
-    # is it even legal in our case?
-    # def SetMultiStatementQuery(self, query: str, parameters: Iterable = []) -> None:
-    #     query = query.strip()
-    #     self.query = query
-        
-    #     if len(parameters) != 0:
-    #         self.parameters = parameters
+
+    def instantiateClasses(self, missing_tables: list[str] | list[models.IModel], 
+                           additionalSetup: Iterable[str] | Iterable[alchem.Table] = []) -> None:
+        for table_name in missing_tables:
+            # TODO to pewnie też da się zrobić lepiej
+            if isinstance(table_name, str):
+                tableClass = next(
+                    (cl for cl in self.tableCreators if cl.__tablename__ == table_name),
+                    None)
+                
+                if not tableClass:
+                    tableClass = next(
+                        (cl for cl in additionalSetup if cl.name == table_name),
+                        None)
+                    tableClass.metadata.create_all(self.dbEngineInstance)
+                    return
+                
+                tableClass.__table__.create(self.dbEngineInstance)
+                
+            elif issubclass(table_name, models.IModel):
+                table_name.__table__.create(self.dbEngineInstance)
+            else:
+                raise AttributeError(f"{table_name} is not name of table or IModel subclass")
+            
 
     def LoadSavedState(self) -> None:
         """Collect all data saved in data source and instantiate adjacent model objects
         """
-        for tC in self.tableCreators:
-            self.SetQuery(f"EXEC {tC.tableName}_load;")
-            result = self.GetData()
-            for readObj in result:
-                tC(**readObj)
-    
-
-    def GetData(self) -> str:
-        # TODO pewnie będzie trzeba dopisać później na mniejsze fetche
-        assert self.query != ""
-        
-        result = self.dbEngineInstance.FetchAll(self.query)
-        
-        self.query = ""
-        self.parameters = []
-        
-        return result
-    
+        with orm.Session(self.dbEngineInstance) as session:
+            for tC in self.tableCreators:
+                try:
+                    result = session.execute(alchem.select(tC)).all()
+                    for readObj in result:
+                        tC(**readObj)
+                except Exception as e:
+                    print(e)
+                    continue
 
 
 class XLSXHandler(IDataSource):
