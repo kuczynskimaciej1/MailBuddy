@@ -1,6 +1,6 @@
 from collections.abc import Callable, Iterable
-from typing import Literal, Any
-from tkinter import Menu, simpledialog, ttk, Listbox, Tk, Text, Button, Frame, Label, Entry, Scrollbar, Toplevel, Misc
+from typing import Literal, Any, NoReturn
+from tkinter import Menu, simpledialog, ttk, Listbox, Tk, Text, Button, Frame, Label, Entry, Scrollbar, Toplevel, Misc, messagebox
 from tkinter.ttk import Combobox
 from tkinter.constants import NORMAL, DISABLED, BOTH, RIDGE, END, LEFT, RIGHT, TOP, X, Y, INSERT, SEL, WORD
 from models import Template
@@ -17,6 +17,7 @@ class AppUI():
         self.root.title("MailBuddy")
         self.root.configure(bg="black")
         self.root.minsize(width=800, height=470)
+        self.root.protocol("WM_DELETE_WINDOW", self.__exit_clicked)
 
         self.__create_navigation()
         self.__create_notification_pane()
@@ -24,8 +25,20 @@ class AppUI():
         self.__create_template_pane()
         self.__create_mail_input_pane()
 
+    def add_periodic_task(self, period: int, func: Callable):
+        # TODO można poprawić żeby się odpalało tylko przy dodaniu obiektu, przemyśleć
+        def wrapper():
+            func()
+            self.root.after(period, wrapper)
+        wrapper()
+
     def run(self):
         self.root.mainloop()
+
+    def __exit_clicked(self) -> NoReturn | None:
+        # Wait for saving objects to DB
+        print("Exiting")
+        exit()
 
     def add_template(self, content: Template | Iterable[Template]):
         if isinstance(content, Template):
@@ -75,8 +88,8 @@ class AppUI():
 
     def __template_selection_changed(self, _event):
         selected: int = self.template_listbox.curselection()
-        # if len(selected) > 0:
-        self.showTemplate(self.szablony[selected[0]])
+        if len(selected) > 0:
+            self.showTemplate(self.szablony[selected[0]])
 
     def showTemplate(self, selected: Template):
         self.entry_text.delete('1.0', END)

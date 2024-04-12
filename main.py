@@ -11,6 +11,7 @@ from additionalTableSetup import MessageAttachment, SendAttempt
 dbname = "localSQLite.sqlite3"
 dbURL = f"sqlite:///{dbname}"
 tables = [m.Template, m.Attachment, m.Contact, ITrigger, m.Message, MessageAttachment, SendAttempt]
+db: IDataSource = None
 
 
 def populateInterface(app: AppUI) -> None:
@@ -22,6 +23,11 @@ def populateInterface(app: AppUI) -> None:
     for (modelType, ui_func) in modelType_func_mapper.items():
         ui_func(modelType.all_instances)
     
+def pushQueuedInstances():
+    if len(m.IModel.saveQueued) > 0:
+        for o in m.IModel.saveQueued:
+            db.Save(o)
+            m.IModel.saveQueued.remove(o)
 
 if __name__ == "__main__":
     db = DatabaseHandler(dbURL, tables)
@@ -36,6 +42,6 @@ if __name__ == "__main__":
     # TODO win32 powidomienia
     # if 'win32' in platform:
     #     enableWin32Integration()
-        
+
+    ui.add_periodic_task(5000, pushQueuedInstances)
     ui.run()
-    

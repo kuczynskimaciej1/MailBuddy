@@ -1,3 +1,4 @@
+from __future__ import annotations
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
@@ -13,6 +14,13 @@ __all__ = ["Template", "Attachment", "Contact", "User", "Message"]
 
 class IModel(declarative_base()):
     __abstract__ = True
+    run_loading = True
+    saveQueued: list[IModel] = []
+    
+    @staticmethod
+    def queueSave(child):
+        if not IModel.run_loading:
+            IModel.saveQueued.append(child)
 
 class Template(IModel):
     all_instances = []
@@ -20,12 +28,14 @@ class Template(IModel):
     
     id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False)
-    content = Column(LargeBinary, nullable=False, default=b'')
+    content = Column(String, nullable=False)
 
-    def __init__(self, name: str, content: str) -> None:
+    def __init__(self, name: str, content: str, id: int | None = None, **args) -> None:
+        self.id = id
         self.name = name
         self.content = content
         Template.all_instances.append(self)
+        IModel.queueSave(child=self)
         
     def __str__(self) -> str:
         return self.name
@@ -41,10 +51,12 @@ class Attachment(IModel):
     file = Column(LargeBinary, nullable=True)
 
 
-    def __init__(self, path, type) -> None:
+    def __init__(self, path, type, attachment_id: int | None = None) -> None:
+        self.attachment_id = attachment_id
         self.path = path
         self.type = type
         Attachment.all_instances.append(self)
+        IModel.queueSave(child=self)
 
     # def prepareAttachment(self):
     #     att = MIMEApplication(open(self.path, "rb").read(), _subtype=self.type)
@@ -76,8 +88,8 @@ class Contact(IModel):
             raise AttributeError(f"{email} is not valid email")
         self.first_name = first_name
         self.last_name = last_name
-        
         Contact.all_instances.append(self)
+        IModel.queueSave(child=self)
 
     def __str__(self) -> str:
         return f"Contact {self.first_name} {self.last_name}, {self.email}"
@@ -100,6 +112,7 @@ class User():
         self.contact = Contact(first_name, last_name, email)
         self.password = password
         User.all_instances.append(self)
+        IModel.queueSave(child=self)
 
 
 class Message(IModel, MIMEMultipart):
@@ -121,3 +134,4 @@ class Message(IModel, MIMEMultipart):
         self.recipient = recipient
         self.att = att
         Message.all_instances.append(self)
+        IModel.queueSave(child=self)

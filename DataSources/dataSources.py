@@ -75,40 +75,36 @@ class DatabaseHandler(IDataSource):
 
 
     def instantiateClasses(self, missing_tables: list[str] | list[models.IModel]) -> None:
-        # if len(additionalSetup) != 0:
-        
-        #     # DEBUG
-        #     md = alchem.MetaData()
-        #     md.reflect(bind=self.dbEngineInstance)
-        #     existing_tables = md.tables.keys()
-            
-            
-        #     for table_name in missing_tables:
-        #         tableClass = next((cl for cl in additionalSetup if cl.name == table_name), None)
-        #         tableClass.metadata.create_all(self.dbEngineInstance)
-        #     return
-        
         for table_name in missing_tables:
             if isinstance(table_name, str):
                 table_name = next((cl for cl in self.tableCreators if cl.__tablename__ == table_name), None)
             
             table_name.__table__.create(self.dbEngineInstance)
-            # raise AttributeError(f"{table_name} is not name of table or IModel subclass")
             
 
     def LoadSavedState(self) -> None:
         """Collect all data saved in data source and instantiate adjacent model objects
         """
-        with orm.Session(self.dbEngineInstance) as session:
+        Session = orm.sessionmaker(bind=self.dbEngineInstance)
+        with Session() as session:
             for tC in self.tableCreators:
                 try:
+                    #TODO to pewnie będzie do poprawy przy zapisywaniu innych obiektów
                     result = session.execute(alchem.select(tC)).all()
+                    if len(result) == 0: continue
                     for readObj in result:
-                        tC(**readObj)
+                        tC(**readObj[0].__dict__)
                 except Exception as e:
                     print(e)
                     continue
+        models.IModel.run_loading = False
 
+    def Save(self, obj: models.IModel):
+        Session = orm.sessionmaker(bind=self.dbEngineInstance)
+        with Session() as session:
+            session.add(obj)
+            session.commit()
+            session.refresh(obj)
 
 class XLSXHandler(IDataSource):
     def __init__(self, path: str) -> None:
