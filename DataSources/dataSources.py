@@ -1,15 +1,10 @@
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable
 from enum import Enum
-from sqlite3 import OperationalError
-import sys
 from pandas import read_csv, read_excel, DataFrame
 import models
-# from .sqliteOperations import sqlite
 import sqlalchemy as alchem
 import sqlalchemy.orm as orm
-import re
-from itertools import chain
 
 class SupportedDbEngines(Enum):
     SQLite=1
@@ -54,7 +49,7 @@ class DatabaseHandler(IDataSource):
         self.tableCreators = tableCreators
 
 
-    def checkIntegrity(self, additionalSetup: Iterable[str] = []) -> bool:
+    def checkIntegrity(self) -> bool:
         """Searches if database contains expected tables, eventually creates missing tables
 
         Args:
@@ -64,42 +59,41 @@ class DatabaseHandler(IDataSource):
         Returns:
             bool: if found intact database
         """
+        dbIntact = True
         
         md = alchem.MetaData()
         md.reflect(bind=self.dbEngineInstance)
         existing_tables = md.tables.keys()
-        expected = [cl.__tablename__ for cl in self.tableCreators] + [t.name for t in additionalSetup]
+        expected = [cl.__tablename__ for cl in self.tableCreators]
         missing_tables = set(expected) - set(existing_tables)
         
         if missing_tables:
             print(f"The following tables are missing in the database: {', '.join(missing_tables)}")
-            self.instantiateClasses(missing_tables, additionalSetup)
-            return False
-        return True
+            self.instantiateClasses(missing_tables)
+            dbIntact = False
+        return dbIntact
 
 
-    def instantiateClasses(self, missing_tables: list[str] | list[models.IModel], 
-                           additionalSetup: Iterable[str] | Iterable[alchem.Table] = []) -> None:
+    def instantiateClasses(self, missing_tables: list[str] | list[models.IModel]) -> None:
+        # if len(additionalSetup) != 0:
+        
+        #     # DEBUG
+        #     md = alchem.MetaData()
+        #     md.reflect(bind=self.dbEngineInstance)
+        #     existing_tables = md.tables.keys()
+            
+            
+        #     for table_name in missing_tables:
+        #         tableClass = next((cl for cl in additionalSetup if cl.name == table_name), None)
+        #         tableClass.metadata.create_all(self.dbEngineInstance)
+        #     return
+        
         for table_name in missing_tables:
-            # TODO to pewnie też da się zrobić lepiej
             if isinstance(table_name, str):
-                tableClass = next(
-                    (cl for cl in self.tableCreators if cl.__tablename__ == table_name),
-                    None)
-                
-                if not tableClass:
-                    tableClass = next(
-                        (cl for cl in additionalSetup if cl.name == table_name),
-                        None)
-                    tableClass.metadata.create_all(self.dbEngineInstance)
-                    return
-                
-                tableClass.__table__.create(self.dbEngineInstance)
-                
-            elif issubclass(table_name, models.IModel):
-                table_name.__table__.create(self.dbEngineInstance)
-            else:
-                raise AttributeError(f"{table_name} is not name of table or IModel subclass")
+                table_name = next((cl for cl in self.tableCreators if cl.__tablename__ == table_name), None)
+            
+            table_name.__table__.create(self.dbEngineInstance)
+            # raise AttributeError(f"{table_name} is not name of table or IModel subclass")
             
 
     def LoadSavedState(self) -> None:
