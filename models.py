@@ -26,6 +26,9 @@ class Template(IModel):
         self.name = name
         self.content = content
         Template.all_instances.append(self)
+        
+    def __str__(self) -> str:
+        return self.name
 
 
 class Attachment(IModel):

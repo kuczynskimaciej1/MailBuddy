@@ -30,8 +30,8 @@ if __name__ == "__main__":
     
     if db.checkIntegrity():
         print("Database intact, proceeding")
-        db.LoadSavedState()
-        populateInterface(ui)
+    db.LoadSavedState()
+    populateInterface(ui)
     
     # TODO win32 powidomienia
     # if 'win32' in platform:
