@@ -1,9 +1,8 @@
-from pathlib import Path
 import pytest
 import os
-import sqlite3
 from SQLite_operations_test import *
 from models import Template
+from sqlalchemy import Engine
 
 testSamplesPath = os.path.join(os.getcwd(), "Tests/Samples")
 
@@ -29,17 +28,15 @@ def getTemplate(request) -> Template:
 )
 def test_template_sqlite_insertable(recreateDatabase, getDatabaseHandler, getTemplate):
     t = getTemplate
-    dbh = getDatabaseHandler
-    engine = dbh.dbEngineInstance
+    dbh: DatabaseHandler = getDatabaseHandler
+    engine: Engine = dbh.dbEngineInstance
     
-    Session = sessionmaker(bind=engine)
-    with Session() as session:
-        session.add(t)
-        session.commit()
-        session.refresh(t)
-
+    dbh.Save(t)
+    
+    Session = sessionmaker(engine)
     with Session() as session:
         selectionResult: list[Template] = session.query(Template).filter_by(name=t.name).all()
+    engine.dispose()
     
     assert selectionResult is not None
     assert len(selectionResult) == 1

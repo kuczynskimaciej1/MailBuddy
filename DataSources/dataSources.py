@@ -105,6 +105,7 @@ class DatabaseHandler(IDataSource):
             session.add(obj)
             session.commit()
             session.refresh(obj)
+        self.dbEngineInstance.dispose()
 
 class XLSXHandler(IDataSource):
     def __init__(self, path: str) -> None:
