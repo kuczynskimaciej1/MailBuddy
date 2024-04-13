@@ -42,9 +42,10 @@ class AppUI():
 
     def add_template(self, content: Template | Iterable[Template]):
         if isinstance(content, Template):
-            self.szablony.append(content)
+            if content not in self.szablony:
+                self.szablony.append(content)
         else:
-            [self.szablony.append(i) for i in content]
+            [self.szablony.append(i) for i in content if i not in self.szablony]
         self.__update_listbox(self.template_listbox, self.szablony)
 
     # def usun_tekst(entry_text: Text):
@@ -90,6 +91,10 @@ class AppUI():
         selected: int = self.template_listbox.curselection()
         if len(selected) > 0:
             self.showTemplate(self.szablony[selected[0]])
+
+    def __template_doubleclicked(self, _event):
+        selected = self.szablony[self.template_listbox.curselection()[0]]
+        self.show_template_window(selected)
 
     def showTemplate(self, selected: Template):
         self.entry_text.delete('1.0', END)
@@ -166,6 +171,7 @@ class AppUI():
         self.template_listbox = Listbox(
             templates_frame, bg="lightblue", fg="black")
         self.template_listbox.bind('<<ListboxSelect>>', self.__template_selection_changed)
+        self.template_listbox.bind('<Double-1>', self.__template_doubleclicked)
 
         templates_frame.pack(side=LEFT, padx=10, pady=10,
                              fill=BOTH, expand=True, ipadx=5, ipady=5)
@@ -190,16 +196,17 @@ class AppUI():
         entry_adres_label.pack(side=TOP, padx=5, pady=5)
         entry_adres.pack(side=TOP, padx=5, pady=5, fill=X)
 
-    def show_template_window(self):
-        self.template_window = TemplateEditor(parent=self, master=self.root)
+    def show_template_window(self, obj: Template | None = None):
+        self.template_window = TemplateEditor(self, self.root, obj)
         self.template_window.prepareInterface()
 
 
 class TemplateEditor(Toplevel):
-    def __init__(self, parent: AppUI, master: Misc) -> None:
+    def __init__(self, parent: AppUI, master: Misc, obj: Template | None = None):
         super().__init__(master)
         self.parent = parent
         self.current_combo = None
+        self.currentTemplate = obj
 
     def prepareInterface(self):
         self.title("Stwórz szablon")
@@ -209,10 +216,14 @@ class TemplateEditor(Toplevel):
 
         name_entry = Entry(self, bg="white", fg="black")
         name_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        if self.currentTemplate:
+            name_entry.insert(INSERT, self.currentTemplate.name if self.currentTemplate.name is not None else "")
 
         template_text = Text(self, bg="lightblue", fg="black", wrap=WORD)
         template_text.grid(row=1, column=0, columnspan=2,
                            padx=5, pady=5, sticky="nsew")
+        if self.currentTemplate:
+            template_text.insert(INSERT, self.currentTemplate.content if self.currentTemplate.content is not None else "")
 
         btn_save = Button(self, text="Zapisz", bg="lightblue", fg="black", command=lambda: self.__save_template_clicked(
             name_entry.get(), template_text.get(1.0, END)))
@@ -224,7 +235,10 @@ class TemplateEditor(Toplevel):
             row=2, column=1, padx=5, pady=5, sticky="w")
 
     def __save_template_clicked(self, template_name: str, template_content: str) -> None:
-        self.parent.add_template(Template(template_name, template_content))
+        if template_name != "" and template_content != "":
+            self.currentTemplate = Template(_name=template_name, _content=template_content)
+            self.parent.add_template(self.currentTemplate)
+        self.destroy()
 
     def __template_window_insert_placeholder(self, template_text: str, placeholders: list[str] = []) -> None:
         placeholder_text = "_____"

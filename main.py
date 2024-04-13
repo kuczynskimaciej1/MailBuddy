@@ -2,7 +2,7 @@ from MessagingService.senders import *
 from MessagingService.readers import *
 from UserInfo.LoginService import *
 # from sys import platform
-import models as m
+from models import IModel, Template, Attachment, Contact, Message
 from Triggers.triggers import ITrigger
 from interface import AppUI
 from DataSources.dataSources import DatabaseHandler, IDataSource
@@ -10,13 +10,13 @@ from additionalTableSetup import MessageAttachment, SendAttempt
 
 dbname = "localSQLite.sqlite3"
 dbURL = f"sqlite:///{dbname}"
-tables = [m.Template, m.Attachment, m.Contact, ITrigger, m.Message, MessageAttachment, SendAttempt]
+tables = [Template, Attachment, Contact, ITrigger, Message, MessageAttachment, SendAttempt]
 db: IDataSource = None
 
 
 def populateInterface(app: AppUI) -> None:
     modelType_func_mapper = {
-        m.Template: app.add_template,
+        Template: app.add_template,
         
         }
     
@@ -24,10 +24,10 @@ def populateInterface(app: AppUI) -> None:
         ui_func(modelType.all_instances)
     
 def pushQueuedInstances():
-    if len(m.IModel.saveQueued) > 0:
-        for o in m.IModel.saveQueued:
+    if len(IModel.saveQueued) > 0:
+        for o in IModel.saveQueued:
             db.Save(o)
-            m.IModel.saveQueued.remove(o)
+            IModel.saveQueued.remove(o)
 
 if __name__ == "__main__":
     db = DatabaseHandler(dbURL, tables)

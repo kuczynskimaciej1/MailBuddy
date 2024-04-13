@@ -93,7 +93,8 @@ class DatabaseHandler(IDataSource):
                     result = session.execute(alchem.select(tC)).all()
                     if len(result) == 0: continue
                     for readObj in result:
-                        tC(**readObj[0].__dict__)
+                        toinit = readObj[0].__dict__
+                        tC(**toinit)
                 except Exception as e:
                     print(e)
                     continue
