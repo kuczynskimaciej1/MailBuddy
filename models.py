@@ -124,7 +124,7 @@ class Contact(IModel):
         IModel.queueSave(child=self)
 
     def __str__(self) -> str:
-        return f"Contact {self.first_name} {self.last_name}, {self.email}"
+        return f"{self.first_name} {self.last_name}, <{self.email}>"
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, Contact):
