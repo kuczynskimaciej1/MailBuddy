@@ -1,6 +1,10 @@
 import pytest
 from faker import Faker
-import personalSecrets as ps
+try:
+    import personalSecrets as ps
+    secretsAvailable = True
+except ImportError:
+    secretsAvailable = False
 from models import Contact, User
 from collections.abc import Callable
 
