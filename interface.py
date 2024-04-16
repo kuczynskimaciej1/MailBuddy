@@ -1,10 +1,43 @@
 from collections.abc import Callable, Iterable
 from typing import Literal, Any, NoReturn
-from tkinter import Menu, simpledialog, ttk, Listbox, Tk, Text, Button, Frame, Label, Entry, Scrollbar, Toplevel, Misc, messagebox
+from tkinter import Menu, simpledialog, ttk, Listbox, Tk, Text, Button, Frame, Label, Entry, Scrollbar, Toplevel, Misc, messagebox, Menubutton, RAISED
 from tkinter.ttk import Combobox
 from tkinter.constants import NORMAL, DISABLED, BOTH, RIDGE, END, LEFT, RIGHT, TOP, X, Y, INSERT, SEL, WORD
 from models import Template
+from tkhtmlview import HTMLLabel
 
+
+class LoginWindow():
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Logowanie")
+        self.root.configure(bg="lightblue")
+        self.root.geometry("300x200")
+
+        label = Label(self.root, text="MailBuddy", bg="lightblue", font=("Helvetica", 24))
+        label.pack(pady=20)
+
+        self.username_entry = Entry(self.root, bg="white", fg="black")
+        self.username_entry.pack(pady=5)
+
+        self.password_entry = Entry(self.root, bg="white", fg="black", show="*")
+        self.password_entry.pack(pady=5)
+
+        login_button = Button(self.root, text="Zaloguj się", bg="lightblue", fg="black", command=self.login)
+        login_button.pack(pady=10)
+
+    def login(self):
+        username = self.username_entry.get()
+        password = self.password_entry.get()
+
+        #  dane logowania czy są test
+        if username == "test" and password == "test":
+            self.root.destroy() 
+            app = AppUI()  
+            app.prepareInterface() 
+            app.run()  
+        else:
+            messagebox.showerror("Błąd logowania", "Nieprawidłowa nazwa użytkownika lub hasło")
 
 class AppUI():
     def __init__(self) -> None:
@@ -48,44 +81,13 @@ class AppUI():
             [self.szablony.append(i) for i in content if i not in self.szablony]
         self.__update_listbox(self.template_listbox, self.szablony)
 
-    # def usun_tekst(entry_text: Text):
-    #     entry_text.delete(1.0, END)
+    def add_group_clicked(self):
+        group_editor = GroupEditor(self)
+        group_editor.prepareInterface()
 
     def __send_clicked() -> None:
         print("send mail")
         pass
-
-    def __add_group_clicked(self):
-        nazwa_grupy = simpledialog.askstring(
-            "Nazwa grupy", "Wpisz nazwę grupy:")
-        if nazwa_grupy:
-            adresy_email = simpledialog.askstring(
-                "Adresy email", "Wpisz adresy email oddzielone przecinkami:")
-            if adresy_email:
-                self.grupy[nazwa_grupy] = adresy_email.split(',')
-                self.update_grupy()
-
-    def zapisz_grupy(self):
-        with open("grupy.txt", "w") as f:
-            for grupa, adresy in self.grupy.items():
-                f.write(grupa + ':' + ','.join(adresy) + '\n')
-
-    def update_grupy(self, btn_zapisz):
-        btn_zapisz.config(state=NORMAL)
-        self.grupy_listbox.delete(0, END)
-        for grupa in self.grupy.keys():
-            self.grupy_listbox.insert(END, grupa)
-
-    def edytuj_grupe(self):
-        if self.grupy_listbox.curselection():
-            indeks = self.grupy_listbox.curselection()[0]
-            nazwa_grupy = self.grupy_listbox.get(indeks)
-            adresy = ','.join(self.grupy[nazwa_grupy])
-            nowe_adresy = simpledialog.askstring(
-                "Edytuj grupę", "Wpisz nowe adresy email oddzielone przecinkami:", initialvalue=adresy)
-            if nowe_adresy:
-                self.grupy[nazwa_grupy] = nowe_adresy.split(',')
-                self.update_grupy()
 
     def __template_selection_changed(self, _event):
         selected: int = self.template_listbox.curselection()
@@ -110,34 +112,40 @@ class AppUI():
 
     def __create_navigation(self):
         navigation_frame = Frame(self.root, bg="lightblue")
-        btn_importuj = Button(
-            navigation_frame, text="Importuj", bg="lightblue", fg="black")
-        btn_eksportuj = Button(
-            navigation_frame, text="Eksportuj", bg="lightblue", fg="black")
-        btn_zaladuj = Button(
-            navigation_frame, text="Załaduj", bg="lightblue", fg="black")
+        
+        btn_plik = Menubutton(
+            navigation_frame, text="Plik", bg="lightblue", fg="black", relief=RAISED, bd=2)
+        plik_menu = Menu(btn_plik, tearoff=0)
+        plik_menu.add_command(label="Importuj", command=self.__importuj_clicked)
+        plik_menu.add_command(label="Eksportuj", command=self.__eksportuj_clicked)
+        btn_plik.configure(menu=plik_menu)
+
         btn_wyslij = Button(navigation_frame, text="Wyślij", bg="lightblue", fg="black",
                                command=lambda: self.__send_clicked()
                                )
         btn_usun = Button(navigation_frame, text="Usuń", bg="lightblue", fg="black",
                              # command=lambda: self.usun_tekst(entry_text)
                              )
-        btn_zapisz = Button(navigation_frame, text="Zapisz", bg="lightblue", fg="black",
-                               command=lambda: self.zapisz_grupy(btn_zapisz), state=DISABLED)
         btn_grupy = Button(navigation_frame, text="Grupy", bg="lightblue", fg="black",
-                              command=lambda: self.__add_group_clicked())
+                   command=lambda: self.add_group_clicked())
         btn_szablony = Button(navigation_frame, text="Templates", bg="lightblue", fg="black",
                                  command=lambda: self.__add_template_clicked())
+        btn_wyloguj = Button(navigation_frame, text="Wyloguj", bg="lightblue", fg="black",
+                             command=self.logout)
 
         navigation_frame.pack(side=TOP, fill=X)
-        btn_importuj.pack(side=LEFT, padx=5, pady=5)
-        btn_eksportuj.pack(side=LEFT, padx=5, pady=5)
-        btn_zaladuj.pack(side=LEFT, padx=5, pady=5)
+        btn_plik.pack(side=LEFT, padx=5, pady=5)
         btn_wyslij.pack(side=LEFT, padx=5, pady=5)
         btn_usun.pack(side=LEFT, padx=5, pady=5)
-        btn_zapisz.pack(side=LEFT, padx=5, pady=5)
         btn_grupy.pack(side=LEFT, padx=5, pady=5)
         btn_szablony.pack(side=LEFT, padx=5, pady=5)
+        btn_wyloguj.pack(side=RIGHT, padx=5, pady=5)
+
+    def __importuj_clicked(self):
+        pass
+
+    def __eksportuj_clicked(self):
+        pass
 
     def __create_notification_pane(self):
         notifications_frame = Frame(
@@ -154,13 +162,13 @@ class AppUI():
             self.root, bg="lightblue", width=200, height=100, relief=RIDGE, borderwidth=2)
         grupy_label = Label(
             groups_frame, text="Grupy mailowe", bg="lightblue")
-        grupy_listbox = Listbox(groups_frame, bg="lightblue", fg="black")
+        self.grupy_listbox = Listbox(groups_frame, bg="lightblue", fg="black")
 
         groups_frame.pack(side=LEFT, padx=10, pady=10,
                           fill=BOTH, expand=True, ipadx=5, ipady=5)
         grupy_label.pack()
-        grupy_listbox.pack(fill=BOTH, expand=True)
-        grupy_listbox.bind('<Double-Button-1>',
+        self.grupy_listbox.pack(fill=BOTH, expand=True)
+        self.grupy_listbox.bind('<Double-Button-1>',
                            lambda event: self.edytuj_grupe())
 
     def __create_template_pane(self):
@@ -180,11 +188,10 @@ class AppUI():
 
     def __create_mail_input_pane(self):
         entry_frame = Frame(self.root, bg="lightblue",
-                               relief=RIDGE, borderwidth=2)
+                            relief=RIDGE, borderwidth=2)
         entry_scrollbar = Scrollbar(entry_frame)
-        self.entry_text = Text(
-            entry_frame, bg="lightblue", fg="black", wrap=WORD, yscrollcommand=entry_scrollbar.set)
-        entry_scrollbar.config(command=self.entry_text.yview)
+        self.entry_html_label = HTMLLabel(
+            entry_frame, html="", bg="lightblue")
         entry_adres_label = Label(
             entry_frame, text="Wyślij do:", bg="lightblue", anchor="s")
         entry_adres = Entry(entry_frame, bg="white", fg="black")
@@ -192,14 +199,22 @@ class AppUI():
         entry_frame.pack(side=TOP, padx=10, pady=10,
                          fill=BOTH, expand=True, ipadx=5, ipady=5)
         entry_scrollbar.pack(side=RIGHT, fill=Y)
-        self.entry_text.pack(fill=BOTH, expand=True)
+        self.entry_html_label.pack(fill=BOTH, expand=True)
         entry_adres_label.pack(side=TOP, padx=5, pady=5)
         entry_adres.pack(side=TOP, padx=5, pady=5, fill=X)
+
+    def showTemplate(self, selected: Template):
+        self.entry_html_label.set_html(selected.content)
 
     def show_template_window(self, obj: Template | None = None):
         self.template_window = TemplateEditor(self, self.root, obj)
         self.template_window.prepareInterface()
 
+    def logout(self):
+        self.root.destroy()  # Zamknij główne okno aplikacji
+        root = Tk()  # Otwórz ponownie okno logowania
+        login_window = LoginWindow(root)
+        root.mainloop()
 
 class TemplateEditor(Toplevel):
     def __init__(self, parent: AppUI, master: Misc, obj: Template | None = None):
@@ -286,3 +301,38 @@ class TemplateEditor(Toplevel):
                 f"{start_index}+{len(placeholder_text)}c")
             template_text.tag_add("placeholder", start_index, end_index)
             start_index = end_index
+
+class GroupEditor(Toplevel):
+    def __init__(self, parent: AppUI):
+        super().__init__(parent.root)
+        self.parent = parent
+
+    def prepareInterface(self):
+        self.title("Dodaj grupę")
+
+        name_label = Label(self, text="Nazwa grupy:", bg="lightblue")
+        name_label.grid(row=0, column=0, padx=5, pady=5)
+
+        name_entry = Entry(self, bg="white", fg="black")
+        name_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+
+        email_label = Label(self, text="Adresy email:", bg="lightblue")
+        email_label.grid(row=1, column=0, padx=5, pady=5)
+
+        email_text = Text(self, bg="lightblue", fg="black", wrap=WORD)
+        email_text.grid(row=1, column=1, padx=5, pady=5, sticky="nsew")
+
+        btn_save = Button(self, text="Zapisz", bg="lightblue", fg="black", command=lambda: self.__save_group_clicked(
+            name_entry.get(), email_text.get(1.0, END)))
+        btn_save.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+
+    def __save_group_clicked(self, group_name: str, email_addresses: str) -> None:
+        emails = email_addresses.split()
+        self.parent.grupy[group_name] = emails
+        self.parent.grupy_listbox.insert(END, group_name)
+        self.destroy()
+
+if __name__ == "__main__":
+    root = Tk()  
+    login_window = LoginWindow(root)
+    root.mainloop()
