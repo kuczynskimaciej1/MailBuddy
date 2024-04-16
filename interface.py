@@ -3,7 +3,7 @@ from typing import Literal, Any, NoReturn
 from tkinter import Menu, simpledialog, ttk, Listbox, Tk, Text, Button, Frame, Label, Entry, Scrollbar, Toplevel, Misc, messagebox, Menubutton, RAISED
 from tkinter.ttk import Combobox
 from tkinter.constants import NORMAL, DISABLED, BOTH, RIDGE, END, LEFT, RIGHT, TOP, X, Y, INSERT, SEL, WORD
-from models import Template
+from models import Contact, IModel, Template
 from tkhtmlview import HTMLLabel
 
 
@@ -14,6 +14,7 @@ class LoginWindow():
         self.root.configure(bg="lightblue")
         self.root.geometry("300x200")
 
+    def prepareInterface(self):
         label = Label(self.root, text="MailBuddy", bg="lightblue", font=("Helvetica", 24))
         label.pack(pady=20)
 
@@ -30,6 +31,7 @@ class LoginWindow():
         username = self.username_entry.get()
         password = self.password_entry.get()
 
+        # TODO połączyć z faktycznym logowaniem, tj tworzeniem Senderów i Readerów
         #  dane logowania czy są test
         if username == "test" and password == "test":
             self.root.destroy() 
@@ -37,6 +39,7 @@ class LoginWindow():
             app.prepareInterface() 
             app.run()  
         else:
+            # TODO Może wystarczy pokazywać czerwony napis pod "Zaloguj się" + komunikat
             messagebox.showerror("Błąd logowania", "Nieprawidłowa nazwa użytkownika lub hasło")
 
 class AppUI():
@@ -52,6 +55,7 @@ class AppUI():
         self.root.minsize(width=800, height=470)
         self.root.protocol("WM_DELETE_WINDOW", self.__exit_clicked)
 
+        self.__create_menu()
         self.__create_navigation()
         self.__create_notification_pane()
         self.__create_mailing_group_pane()
@@ -81,12 +85,22 @@ class AppUI():
             [self.szablony.append(i) for i in content if i not in self.szablony]
         self.__update_listbox(self.template_listbox, self.szablony)
 
-    def add_group_clicked(self):
+    def add_group(self, name: str, emails: Iterable[Contact]):
+        self.grupy[name] = emails
+        self.__update_listbox(self.grupy_listbox, self.grupy)
+
+    def __add_group_clicked(self):
         group_editor = GroupEditor(self)
         group_editor.prepareInterface()
 
     def __send_clicked() -> None:
         print("send mail")
+        pass
+
+    def __importuj_clicked(self):
+        pass
+
+    def __eksportuj_clicked(self):
         pass
 
     def __template_selection_changed(self, _event):
@@ -103,16 +117,48 @@ class AppUI():
         self.entry_text.insert(END, selected.content)
 
     @staticmethod
-    def __update_listbox(lb: Listbox, content: Iterable[str]):
-        lb.delete(0, END)
-        [lb.insert(END, i) for i in content]
+    def __update_listbox(lb: Listbox, content: Iterable[str] | dict[IModel]):
+        if isinstance(content, list):
+            lb.delete(0, END)
+            [lb.insert(END, i) for i in content]
+        elif isinstance(content, dict):
+            lb.delete(0, END)
+            [lb.insert(END, k) for k in content.keys()]
+        else:
+            raise AttributeError(f"Wrong type of 'content', expected dict or Iterable, got {type(content)}")
 
     def __add_template_clicked(self):
         self.show_template_window()
 
+    def __create_menu(self):
+        menubar = Menu(self.root)
+
+        file_menu = Menu(menubar, tearoff=0)
+        file_menu.add_command(label="Import", command=self.__importuj_clicked)
+        file_menu.add_command(label="Export", command=self.__eksportuj_clicked)
+        menubar.add_cascade(label="File", menu=file_menu)
+        
+        edit_menu = Menu(menubar, tearoff=0)
+        add_menu = Menu(edit_menu, tearoff=0)
+        add_menu.add_command(label="Template", command=self.__add_template_clicked)
+        add_menu.add_command(label="Group", command=self.__add_group_clicked)
+        edit_menu.add_cascade(label="Add...", menu=add_menu)
+        menubar.add_cascade(label="Edit", menu=edit_menu)
+        
+        self.root.config(menu=menubar)
+
     def __create_navigation(self):
         navigation_frame = Frame(self.root, bg="lightblue")
         
+        
+        btn_plik = Menubutton(
+            navigation_frame, text="Plik", bg="lightblue", fg="black", relief=RAISED, bd=2)
+        plik_menu = Menu(btn_plik, tearoff=0)
+        plik_menu.add_command(label="Importuj", command=self.__importuj_clicked)
+        plik_menu.add_command(label="Eksportuj", command=self.__eksportuj_clicked)
+        btn_plik.configure(menu=plik_menu)
+
+
         btn_plik = Menubutton(
             navigation_frame, text="Plik", bg="lightblue", fg="black", relief=RAISED, bd=2)
         plik_menu = Menu(btn_plik, tearoff=0)
@@ -127,25 +173,18 @@ class AppUI():
                              # command=lambda: self.usun_tekst(entry_text)
                              )
         btn_grupy = Button(navigation_frame, text="Grupy", bg="lightblue", fg="black",
-                   command=lambda: self.add_group_clicked())
+                   command=lambda: self.__add_group_clicked())
         btn_szablony = Button(navigation_frame, text="Templates", bg="lightblue", fg="black",
                                  command=lambda: self.__add_template_clicked())
-        btn_wyloguj = Button(navigation_frame, text="Wyloguj", bg="lightblue", fg="black",
+        btn_settings = Button(navigation_frame, text="Ustawienia", bg="lightblue", fg="black",
                              command=self.logout)
 
         navigation_frame.pack(side=TOP, fill=X)
-        btn_plik.pack(side=LEFT, padx=5, pady=5)
         btn_wyslij.pack(side=LEFT, padx=5, pady=5)
         btn_usun.pack(side=LEFT, padx=5, pady=5)
         btn_grupy.pack(side=LEFT, padx=5, pady=5)
         btn_szablony.pack(side=LEFT, padx=5, pady=5)
-        btn_wyloguj.pack(side=RIGHT, padx=5, pady=5)
-
-    def __importuj_clicked(self):
-        pass
-
-    def __eksportuj_clicked(self):
-        pass
+        btn_settings.pack(side=RIGHT, padx=5, pady=5)
 
     def __create_notification_pane(self):
         notifications_frame = Frame(
@@ -211,9 +250,14 @@ class AppUI():
         self.template_window.prepareInterface()
 
     def logout(self):
+        # TODO to jest do zmiany, okno powinno zostać przemianowane na ustawienia, gdzie 
+        # logujemy się do providerów poczty, sam program nie ma blokady
+        # względem użytkownika
+
         self.root.destroy()  # Zamknij główne okno aplikacji
         root = Tk()  # Otwórz ponownie okno logowania
         login_window = LoginWindow(root)
+        login_window.prepareInterface()
         root.mainloop()
 
 class TemplateEditor(Toplevel):
@@ -327,12 +371,9 @@ class GroupEditor(Toplevel):
         btn_save.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
     def __save_group_clicked(self, group_name: str, email_addresses: str) -> None:
-        emails = email_addresses.split()
-        self.parent.grupy[group_name] = emails
-        self.parent.grupy_listbox.insert(END, group_name)
+        result = []
+        for mail in email_addresses.split(","):
+            # TODO jeżeli kontakt już istnieje, to nie tworzyć nowego, tylko zwrócić istniejący
+            result.append(Contact("", "", mail))
+        self.parent.add_group(group_name, result)
         self.destroy()
-
-if __name__ == "__main__":
-    root = Tk()  
-    login_window = LoginWindow(root)
-    root.mainloop()
