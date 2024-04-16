@@ -17,13 +17,7 @@ class MessageAttachment(declarative_base()):
 class SendAttempt(declarative_base()):
     __tablename__ = 'Send_attempts'
 
-    message_id = Column(Integer, ForeignKey(Message.message_id), nullable=False)
-    attempt = Column(Integer, nullable=False)
+    message_id = Column(Integer, ForeignKey(Message.message_id), primary_key=True)
+    attempt = Column(Integer, primary_key=True)
     timestamp = Column(TIMESTAMP, nullable=False)
     error_message = Column(VARCHAR(200), server_default='')
-    
-    __table_args__ = (
-        PrimaryKeyConstraint(message_id, attempt),
-        ForeignKeyConstraint([message_id], [Message.message_id])
-    )
-    
