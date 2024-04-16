@@ -17,7 +17,7 @@ testSamplesPath = os.path.join(os.getcwd(), "Tests/Samples")
     }.items()])
 def getTemplate(request) -> Template:
     with open(request.param[1], "rb") as rb:
-        result = Template(request.param[0], rb.read())
+        result = Template(_name=request.param[0], _content=rb.read())
     return result
 
 
