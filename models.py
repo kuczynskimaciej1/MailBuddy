@@ -10,7 +10,7 @@ from pathlib import Path
 import re
 
 
-__all__ = ["Template", "Attachment", "Contact", "User", "Message"]
+__all__ = ["Template", "Attachment", "Contact", "User", "Message", "Group"]
 
 
 class IModel(declarative_base()):
@@ -46,6 +46,7 @@ class Template(IModel):
     def __repr__(self):
         return f"Template(_name={self.name}, _content={self.content}, _id={self.id})"
 
+# region Properties
     @hybrid_property
     def id(self):
         return self._id
@@ -72,7 +73,7 @@ class Template(IModel):
     @content.setter
     def content(self, value: str | None):
         self._content = value
-
+#endregion
 
 class Attachment(IModel):
     all_instances = []
@@ -101,11 +102,11 @@ class Contact(IModel):
     all_instances = []
     __tablename__ = "Contacts"
 
-    email = Column(String(100), primary_key=True)
-    first_name = Column(String(50), nullable=False)
-    last_name = Column(String(50))
+    _email = Column("email", String(100), primary_key=True)
+    _first_name = Column("first_name", String(50), nullable=True)
+    _last_name = Column("last_name", String(50), nullable=True)
 
-    def __init__(self, first_name: str, last_name: str, email: str) -> None:
+    def __init__(self, **kwargs) -> None:
         """Creates instance and adds it to all_instances
         Args:
             first_name (str): any string
@@ -114,12 +115,9 @@ class Contact(IModel):
         Raises:
             AttributeError: when email doesn't match standard pattern
         """
-        if Contact.isEmail(email):
-            self.email = email
-        else:
-            raise AttributeError(f"{email} is not valid email")
-        self.first_name = first_name
-        self.last_name = last_name
+        self.email = kwargs.pop("_email", None)
+        self.first_name = kwargs.pop("_first_name", None)
+        self.last_name = kwargs.pop("_last_name", None)
         Contact.all_instances.append(self)
         IModel.queueSave(child=self)
 
@@ -131,11 +129,46 @@ class Contact(IModel):
             return NotImplemented
         return self.email == other.email and self.first_name == other.first_name and self.last_name == other.last_name
 
+    @classmethod
+    def get_by_id(cls, searched_id: int) -> Contact | None:
+        for candidate in cls.all_instances:
+            if candidate.id == searched_id:
+                return candidate
+        return None
+
     @staticmethod
     def isEmail(candidate: str) -> bool:
         if re.match(r"[^@]+@[^@]+\.[^@]+", candidate):
             return True
         return False
+    
+# region Properties
+    @hybrid_property
+    def email(self):
+        return self._email
+
+    @hybrid_property
+    def first_name(self):
+        return self._first_name
+    
+    @hybrid_property
+    def last_name(self):
+        return self._last_name
+
+    @email.setter
+    def email(self, newValue: int):
+        if not Contact.isEmail(newValue):
+            raise AttributeError("Value is not an email")
+        self._email = newValue
+
+    @first_name.setter
+    def first_name(self, value: str | None):
+        self._first_name = value
+
+    @last_name.setter
+    def last_name(self, value: str | None):
+        self._last_name = value
+#endregion
 
 
 class User():
@@ -170,3 +203,54 @@ class Message(IModel, MIMEMultipart):
         self.att = att
         Message.all_instances.append(self)
         IModel.queueSave(child=self)
+
+
+class Group(IModel):
+    all_instances: list[Group] = []
+    __tablename__ = "Groups"
+    
+    _id = Column("id", Integer, primary_key=True)
+    _name = Column("name", String(100), nullable=True)
+    
+    def __init__(self, **kwargs):
+        self.id: int = kwargs.pop('_id', None)
+        self.name: str = kwargs.pop('_name', "")
+        self.contacts : list[Contact] = kwargs.pop("_contacts", [])
+        IModel.queueSave(self)
+    
+    def __str__(self):
+        return f"{self.id}: {self.name}"
+    
+    @classmethod
+    def get_by_id(cls, searched_id: int) -> Group | None:
+        for candidate in cls.all_instances:
+            if candidate.id == searched_id:
+                return candidate
+        return None
+    
+    def _add_contact(self, c: Contact) -> bool:
+        if c not in self.contacts:
+            self.contacts.append(c)
+            return True
+        return False
+    
+#region Properties
+    @hybrid_property
+    def id(self):
+        return self._id
+
+    @hybrid_property
+    def name(self):
+        return self._name
+    
+    @id.setter
+    def id(self, newValue: int):
+        if newValue:
+            self._id = newValue
+        else:
+            self._id = max((i.id for i in Group.all_instances), default=-1) + 1
+
+    @name.setter
+    def name(self, value: str | None):
+        self._name = value
+#endregion

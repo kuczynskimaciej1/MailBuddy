@@ -3,7 +3,7 @@ from typing import Literal, Any, NoReturn
 from tkinter import Menu, simpledialog, ttk, Listbox, Tk, Text, Button, Frame, Label, Entry, Scrollbar, Toplevel, Misc, messagebox, Menubutton, RAISED
 from tkinter.ttk import Combobox
 from tkinter.constants import NORMAL, DISABLED, BOTH, RIDGE, END, LEFT, RIGHT, TOP, X, Y, INSERT, SEL, WORD
-from models import Contact, IModel, Template
+from models import Contact, IModel, Template, Group
 from tkhtmlview import HTMLLabel
 
 def errorHandler(xd, exctype: type, excvalue: Exception, tb):
@@ -51,7 +51,7 @@ class LoginWindow():
 class AppUI():
     def __init__(self) -> None:
         self.root = Tk()
-        self.grupy = {}
+        self.grupy: list[Group] = []  #TODO pokazywanie w listbox
         self.szablony: list[Template] = []
         self.template_window: TemplateEditor = None
 
@@ -91,15 +91,19 @@ class AppUI():
             [self.szablony.append(i) for i in content if i not in self.szablony]
         self.__update_listbox(self.template_listbox, self.szablony)
 
-    def add_group(self, name: str, emails: Iterable[Contact]):
-        self.grupy[name] = emails
+    def add_group(self, g: Group | Iterable[Group]):
+        if isinstance(g, Group):
+            if g not in self.grupy:
+                self.grupy.append(g)
+        else:
+            [self.grupy.append(i) for i in g if i not in self.grupy]
         self.__update_listbox(self.grupy_listbox, self.grupy)
 
     def __add_group_clicked(self):
         self.show_group_window()
         
-    def show_group_window(self, group_name: str | None = None, contacts: Iterable[Contact] | None = None):
-        group_editor = GroupEditor(self, group_name, contacts)
+    def show_group_window(self, g: Group | None = None):
+        group_editor = GroupEditor(self, g)
         group_editor.prepareInterface()
 
     def __send_clicked() -> None:
@@ -120,8 +124,8 @@ class AppUI():
     def __group_doubleclicked(self, _event):
         selected = self.grupy_listbox.curselection()
         if len(selected) > 0:
-            elem = self.grupy_listbox.get(selected[0])
-            self.show_group_window(elem, self.grupy[elem])
+            elem = int(self.grupy_listbox.get(selected[0]).split(':')[0])
+            self.show_group_window(self.grupy[elem])
 
     def __group_selection_changed(self, _event):
         selected: int = self.template_listbox.curselection()
@@ -137,8 +141,8 @@ class AppUI():
         self.entry_text.insert(END, selected.content)
 
     @staticmethod
-    def __update_listbox(lb: Listbox, content: Iterable[str] | dict[IModel]):
-        if isinstance(content, list):
+    def __update_listbox(lb: Listbox, content: Iterable[IModel] | dict[IModel]):
+        if isinstance(content, Iterable):
             lb.delete(0, END)
             [lb.insert(END, i) for i in content]
         elif isinstance(content, dict):
@@ -367,10 +371,9 @@ class TemplateEditor(Toplevel):
             start_index = end_index
 
 class GroupEditor(Toplevel):
-    def __init__(self, parent: AppUI, groupName: str | None = None, edited: Iterable[Contact] | None = None):
+    def __init__(self, parent: AppUI, edited: Group | None = None):
         super().__init__(parent.root)
         self.parent = parent
-        self.groupName = groupName
         self.currentGroup = edited
 
     def prepareInterface(self):
@@ -382,9 +385,6 @@ class GroupEditor(Toplevel):
         self.name_entry = Entry(self, bg="white", fg="black")
         self.name_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
-        if self.groupName:
-            self.name_entry.insert(INSERT, self.groupName)
-
         email_label = Label(self, text="Adresy email:", bg="lightblue")
         email_label.grid(row=1, column=0, padx=5, pady=5)
 
@@ -392,24 +392,27 @@ class GroupEditor(Toplevel):
         self.email_text.grid(row=1, column=1, padx=5, pady=5, sticky="nsew")
 
         if self.currentGroup:
-            [self.add_contact(c) for c in self.currentGroup]
+            self.name_entry.insert(INSERT, self.currentGroup.name)
+            [self.add_contact(c) for c in self.currentGroup.contacts]
 
         btn_save = Button(self, text="Zapisz", bg="lightblue", fg="black", command=self.__save_group_clicked)
         btn_save.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
     def add_contact(self, c: Contact):
-        self.email_text.insert(INSERT, str(c))
-        # self.email_text.update
+        self.email_text.insert(INSERT, c)
 
     def __save_group_clicked(self) -> None:
-        result = []
-        group_name, email_addresses = self.name_entry.get(), self.email_text.get(1.0, END)
+        if not self.currentGroup:
+            self.currentGroup = Group(_name = self.name_entry.get())
+        else:
+            self.currentGroup.name = self.name_entry.get()
+        
+        email_addresses = self.email_text.get(1.0, END)
         for mail in email_addresses.replace("\n", "").split(","):
-            # TODO jeżeli kontakt już istnieje, to nie tworzyć nowego, tylko zwrócić istniejący
             try:
-                result.append(Contact("", "", mail))
+                self.currentGroup._add_contact(Contact(_email=mail))
             except AttributeError as e:
                 # print(e)
                 raise e
-        self.parent.add_group(group_name, result)
+        self.parent.add_group(self.currentGroup)
         self.destroy()
