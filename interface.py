@@ -5,6 +5,7 @@ from tkinter.ttk import Combobox
 from tkinter.constants import NORMAL, DISABLED, BOTH, RIDGE, END, LEFT, RIGHT, TOP, X, Y, INSERT, SEL, WORD
 from models import Contact, IModel, Template
 from tkhtmlview import HTMLLabel
+from tkinter import *
 
 def errorHandler(xd, exctype: type, excvalue: Exception, tb):
     msg = f"{exctype}: {excvalue}, {tb}"
@@ -367,7 +368,7 @@ class TemplateEditor(Toplevel):
             start_index = end_index
 
 class GroupEditor(Toplevel):
-    def __init__(self, parent: AppUI, groupName: str | None = None, edited: Iterable[Contact] | None = None):
+    def __init__(self, parent: 'AppUI', groupName: str | None = None, edited: Iterable['Contact'] | None = None):
         super().__init__(parent.root)
         self.parent = parent
         self.groupName = groupName
@@ -394,22 +395,73 @@ class GroupEditor(Toplevel):
         if self.currentGroup:
             [self.add_contact(c) for c in self.currentGroup]
 
-        btn_save = Button(self, text="Zapisz", bg="lightblue", fg="black", command=self.__save_group_clicked)
-        btn_save.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+        btn_add_contact = Button(self, text="Dodaj adres mailowy", bg="lightblue", fg="black", command=self.add_contact_window)
+        btn_add_contact.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
-    def add_contact(self, c: Contact):
-        self.email_text.insert(INSERT, str(c))
-        # self.email_text.update
+        btn_save = Button(self, text="Zapisz", bg="lightblue", fg="black", command=self.__save_group_clicked)
+        btn_save.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+
+    def add_contact(self, c: 'Contact'):
+        self.email_text.insert(INSERT, str(c.email) + "\n")  
+
+    def add_contact_window(self):
+        contact_window = Toplevel(self)
+        contact_window.title("Dodaj kontakt")
+        contact_window.geometry("%dx%d+%d+%d" % (self.winfo_width(), self.winfo_height(), self.winfo_rootx(), self.winfo_rooty()))
+
+    
+        email_label = Label(contact_window, text="Adres email:")
+        email_label.grid(row=0, column=0, padx=5, pady=5)
+        self.email_entry = Entry(contact_window)
+        self.email_entry.grid(row=0, column=1, padx=5, pady=5)
+
+        name_label = Label(contact_window, text="Imię:")
+        name_label.grid(row=0, column=2, padx=5, pady=5)
+        self.name_entry = Entry(contact_window)
+        self.name_entry.grid(row=0, column=3, padx=5, pady=5)
+
+        surname_label = Label(contact_window, text="Nazwisko:")
+        surname_label.grid(row=0, column=4, padx=5, pady=5)
+        self.surname_entry = Entry(contact_window)
+        self.surname_entry.grid(row=0, column=5, padx=5, pady=5)
+
+     
+        btn_add = Button(contact_window, text="Dodaj kontakt", bg="lightblue", fg="black", command=self.add_contact_to_group)
+        btn_add.grid(row=1, column=0, columnspan=6, padx=5, pady=5)
+
+       
+        self.feedback_label = Label(contact_window, text="", bg="lightblue")
+        self.feedback_label.grid(row=2, column=0, columnspan=6, padx=5, pady=5, sticky="ew")
+
+    def add_contact_to_group(self):
+        email = self.email_entry.get()
+        name = self.name_entry.get()
+        surname = self.surname_entry.get()
+
+        if email and name and surname:
+            contact_info = f"{email} - {name} {surname}"
+            self.email_text.insert(END, email + "\n")  
+            self.feedback_label.config(text="Kontakt dodany", fg="green")
+        else:
+            self.feedback_label.config(text="Uzupełnij wszystkie pola", fg="red")
 
     def __save_group_clicked(self) -> None:
         result = []
         group_name, email_addresses = self.name_entry.get(), self.email_text.get(1.0, END)
         for mail in email_addresses.replace("\n", "").split(","):
-            # TODO jeżeli kontakt już istnieje, to nie tworzyć nowego, tylko zwrócić istniejący
             try:
                 result.append(Contact("", "", mail))
             except AttributeError as e:
-                # print(e)
                 raise e
         self.parent.add_group(group_name, result)
         self.destroy()
+
+
+class Contact:
+    def __init__(self, name, surname, email):
+        self.name = name
+        self.surname = surname
+        self.email = email
+
+    def __str__(self):
+        return f"{self.name} {self.surname} - {self.email}"
