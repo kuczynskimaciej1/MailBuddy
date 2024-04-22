@@ -1,4 +1,6 @@
 from collections.abc import Callable, Iterable
+from types import TracebackType
+from traceback import print_tb
 from typing import Literal, Any, NoReturn
 from tkinter import Menu, simpledialog, ttk, Listbox, Tk, Text, Button, Frame, Label, Entry, Scrollbar, Toplevel, Misc, messagebox, Menubutton, RAISED
 from tkinter.ttk import Combobox
@@ -6,8 +8,8 @@ from tkinter.constants import NORMAL, DISABLED, BOTH, RIDGE, END, LEFT, RIGHT, T
 from models import Contact, IModel, Template, Group
 from tkhtmlview import HTMLLabel
 
-def errorHandler(xd, exctype: type, excvalue: Exception, tb):
-    msg = f"{exctype}: {excvalue}, {tb}"
+def errorHandler(xd, exctype: type, excvalue: Exception, tb: TracebackType):
+    msg = f"{exctype}: {excvalue}, {print_tb(tb)}"
     print(msg)
     simpledialog.messagebox.showerror("Error", msg)
 
