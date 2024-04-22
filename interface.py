@@ -132,7 +132,10 @@ class AppUI():
     def __group_selection_changed(self, _event):
         selected: int = self.grupy_listbox.curselection()
         if len(selected) > 0:
-            self.show_group_window(self.grupy[selected[0]])
+            g: Group = self.grupy[selected[0]]
+            mails = [", ".join(x.email) for x in g.contacts]
+            self.entry_adres.delete(0, END) 
+            self.entry_adres.insert(INSERT, mails)
 
     def __template_doubleclicked(self, _event):
         selected = self.szablony[self.template_listbox.curselection()[0]]
@@ -259,14 +262,14 @@ class AppUI():
             entry_frame, html="", bg="lightblue")
         entry_adres_label = Label(
             entry_frame, text="Wyślij do:", bg="lightblue", anchor="s")
-        entry_adres = Entry(entry_frame, bg="white", fg="black")
+        self.entry_adres = Entry(entry_frame, bg="white", fg="black")
 
         entry_frame.pack(side=TOP, padx=10, pady=10,
                          fill=BOTH, expand=True, ipadx=5, ipady=5)
         entry_scrollbar.pack(side=RIGHT, fill=Y)
         self.entry_html_label.pack(fill=BOTH, expand=True)
         entry_adres_label.pack(side=TOP, padx=5, pady=5)
-        entry_adres.pack(side=TOP, padx=5, pady=5, fill=X)
+        self.entry_adres.pack(side=TOP, padx=5, pady=5, fill=X)
 
     def showTemplate(self, selected: Template):
         self.entry_html_label.set_html(selected.content)
