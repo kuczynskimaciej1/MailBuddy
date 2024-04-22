@@ -216,6 +216,7 @@ class Group(IModel):
         self.id: int = kwargs.pop('_id', None)
         self.name: str = kwargs.pop('_name', "")
         self.contacts : list[Contact] = kwargs.pop("_contacts", [])
+        Group.all_instances.append(self)
         IModel.queueSave(self)
     
     def __str__(self):
