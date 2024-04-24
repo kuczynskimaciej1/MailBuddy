@@ -408,11 +408,37 @@ class GroupEditor(Toplevel):
         self.email_text.insert(INSERT, str(c.email) + "\n")  
 
     def add_contact_from_list_window(self):
+        def search_contact():
+            search_criteria = search_entry.get().strip().lower()
+            for widget in contact_inner_frame.winfo_children():
+                widget.destroy()
+            for idx, (email, name, surname) in enumerate(fake_data):
+                if search_criteria in name.lower() or search_criteria in surname.lower() or search_criteria in email.lower():
+                    Label(contact_inner_frame, text=f"Mail {idx+1}:").grid(row=idx, column=0, padx=5, pady=5)
+                    Label(contact_inner_frame, text=f"{email} - {name} {surname}").grid(row=idx, column=1, padx=5, pady=5)
+                    Button(contact_inner_frame, text="Dodaj kontakt", bg="lightblue", fg="black", command=lambda email=email: add_contact_from_list(email)).grid(row=idx, column=2, padx=5, pady=5)
+
         contact_window = Toplevel(self)
         contact_window.title("Dodaj kontakt z listy")
+        
+        group_editor_geometry = self.winfo_geometry()
+        
+        contact_window.geometry(group_editor_geometry)
 
         contact_frame = Frame(contact_window)
         contact_frame.pack(fill=BOTH, expand=True)
+
+        search_frame = Frame(contact_frame, bg="lightblue")
+        search_frame.pack(fill=X, padx=5, pady=5)
+
+        search_label = Label(search_frame, text="Wyszukaj:", bg="lightblue")
+        search_label.pack(side=LEFT, padx=5, pady=5)
+
+        search_entry = Entry(search_frame, bg="white", fg="black")
+        search_entry.pack(side=LEFT, padx=5, pady=5, expand=True, fill=X)
+
+        search_button = Button(search_frame, text="Szukaj", bg="lightblue", fg="black", command=search_contact)
+        search_button.pack(side=LEFT, padx=5, pady=5)
 
         scrollbar = Scrollbar(contact_frame, orient=VERTICAL)
         scrollbar.pack(side=RIGHT, fill=Y)
@@ -426,28 +452,29 @@ class GroupEditor(Toplevel):
         contact_canvas.create_window((0, 0), window=contact_inner_frame, anchor='nw')
 
         fake_data = [("mail1@example.com", "John", "Doe"),
-                     ("mail2@example.com", "Jane", "Smith"),
-                     ("mail3@example.com", "Michael", "Johnson"),
-                     ("mail4@example.com", "Emily", "Brown"),
-                     ("mail5@example.com", "William", "Jones"),
-                     ("mail6@example.com", "Olivia", "Taylor"),
-                     ("mail7@example.com", "David", "Anderson"),
-                     ("mail8@example.com", "Sophia", "Thomas"),
-                     ("mail9@example.com", "James", "Jackson"),
-                     ("mail10@example.com", "Emma", "White"),
-                     ("mail11@example.com", "Benjamin", "Harris"),
-                     ("mail12@example.com", "Isabella", "Martin"),
-                     ("mail13@example.com", "Daniel", "Thompson"),
-                     ("mail14@example.com", "Ava", "Garcia"),
-                     ("mail15@example.com", "Alexander", "Martinez"),
-                     ("mail16@example.com", "TEST", "16")]
+                    ("mail2@example.com", "Jane", "Smith"),
+                    ("mail3@example.com", "Michael", "Johnson"),
+                    ("mail4@example.com", "Emily", "Brown"),
+                    ("mail5@example.com", "William", "Jones"),
+                    ("mail6@example.com", "Olivia", "Taylor"),
+                    ("mail7@example.com", "David", "Anderson"),
+                    ("mail8@example.com", "Sophia", "Thomas"),
+                    ("mail9@example.com", "James", "Jackson"),
+                    ("mail10@example.com", "Emma", "White"),
+                    ("mail11@example.com", "Benjamin", "Harris"),
+                    ("mail12@example.com", "Isabella", "Martin"),
+                    ("mail13@example.com", "Daniel", "Thompson"),
+                    ("mail14@example.com", "Ava", "Garcia"),
+                    ("mail15@example.com", "Alexander", "Martinez"),
+                    ("mail16@example.com", "TEST", "16"),
+                    ("mail17@example.com", "TEST", "17")]
 
         def add_contact_from_list(email):
             self.email_text.insert(END, email + "\n")  
 
         for idx, (email, name, surname) in enumerate(fake_data):
             Label(contact_inner_frame, text=f"Mail {idx+1}:").grid(row=idx, column=0, padx=5, pady=5)
-            Label(contact_inner_frame, text=f"{email}").grid(row=idx, column=1, padx=5, pady=5)
+            Label(contact_inner_frame, text=f"{email} - {name} {surname}").grid(row=idx, column=1, padx=5, pady=5)
             Button(contact_inner_frame, text="Dodaj kontakt", bg="lightblue", fg="black", command=lambda email=email: add_contact_from_list(email)).grid(row=idx, column=2, padx=5, pady=5)
 
         def on_frame_configure(event):
