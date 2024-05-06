@@ -3,15 +3,24 @@ from models import Group, Contact
 from DataSources.dataSources import DatabaseHandler
 
 class GroupController:
-    def __init__(self, dbh: DatabaseHandler) -> None:
-        self.dbh: DatabaseHandler = dbh
+    dbh: DatabaseHandler = None
+    @classmethod
+    def setDbHandler(cls, handler: DatabaseHandler) -> None:
+        cls.dbh = handler
     
-    def add_contact(self, g: Group, c: Contact) -> None:
+    @classmethod
+    def add_contact(cls, g: Group, c: Contact) -> None:
         if g._add_contact(c):
             gc = GroupContacts(group_id=g.id, contact_id=c.email)
-            self.dbh.Save(gc)
+            cls.dbh.Save(gc)
             
     # TODO delete contact binding?
-        
-    def get_contacts(self, g: Group) -> list[Contact]:
-        return self.dbh.GetData(GroupContacts, group_id=g.id)
+    
+    @classmethod
+    def get_contacts(cls, g: Group) -> list[Contact]:
+        mapping = cls.dbh.GetData(GroupContacts, group_id=g.id)
+        # TODO: Wydajność? Wywołania tego na potencjalnie ogromnej tabeli to spory koszt, na pewno można to jakoś kiedyś ładnie zoptymalizować
+        result = []
+        for entry in mapping:
+            result.append(*cls.dbh.GetData(Contact, email=entry.contact_id))
+        return result

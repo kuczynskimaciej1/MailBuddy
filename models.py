@@ -156,7 +156,7 @@ class Contact(IModel):
         return self._last_name
 
     @email.setter
-    def email(self, newValue: int):
+    def email(self, newValue: str):
         if not Contact.isEmail(newValue):
             raise AttributeError("Value is not an email")
         self._email = newValue
@@ -215,7 +215,7 @@ class Group(IModel):
     def __init__(self, **kwargs):
         self.id: int = kwargs.pop('_id', None)
         self.name: str = kwargs.pop('_name', "")
-        self.contacts : list[Contact] = kwargs.pop("_contacts", [])
+        self.contacts: list[Contact] = kwargs.pop("_contacts", [])
         Group.all_instances.append(self)
         IModel.queueSave(self)
     

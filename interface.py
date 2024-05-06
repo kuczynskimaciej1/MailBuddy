@@ -1,4 +1,5 @@
 from collections.abc import Callable, Iterable
+from sqlalchemy.exc import IntegrityError
 from types import TracebackType
 from traceback import print_tb
 from typing import Literal, Any, NoReturn
@@ -136,7 +137,7 @@ class AppUI():
         group_editor = GroupEditor(self, g)
         group_editor.prepareInterface()
 
-    def __send_clicked() -> None:
+    def __send_clicked(event) -> None:
         print("send mail")
         pass
 
@@ -166,8 +167,10 @@ class AppUI():
             self.entry_adres.insert(INSERT, mails)
 
     def __template_doubleclicked(self, _event):
-        selected = self.szablony[self.template_listbox.curselection()[0]]
-        self.show_template_window(selected)
+        ui_selection = self.template_listbox.curselection()
+        if len(ui_selection) > 0:
+            selected = self.szablony[ui_selection[0]]
+            self.show_template_window(selected)
 
     def showTemplate(self, selected: Template):
         self.entry_text.delete('1.0', END)
@@ -449,9 +452,13 @@ class GroupEditor(Toplevel):
         # btn_add_manual_contact.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
         btn_save.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
         
+        self.update()
+        
+    def update(self):
         if self.currentGroup:
             self.title(f"Edytuj grupę {self.currentGroup.name}")
             self.name_entry.insert(INSERT, self.currentGroup.name)
+            self.currentGroup.contacts = GroupController.get_contacts(self.currentGroup)
             [self.add_contact(c) for c in self.currentGroup.contacts]
         else:
             self.title("Dodaj grupę")
@@ -469,9 +476,10 @@ class GroupEditor(Toplevel):
             self.currentGroup = Group(_name = self.name_entry.get())
         else:
             self.currentGroup.name = self.name_entry.get()
-        
-        email_addresses = self.email_text.get(1.0, END)
-        for mail in email_addresses.replace("\n", "").split(","):
+        txt = self.email_text.get(1.0, END).strip()
+        email_addresses = [address for address in txt.replace("\n", "").split(",") if address.strip()]
+        # TODO: Przy zmianie kontrolek w grupie będzie trzeba zmienić wywoływanie konstruktora - te kontakty powinny być zapisane wcześniej, bez możliwości dodawania ich od tak z palca
+        for mail in email_addresses:
             try:
                 self.currentGroup._add_contact(Contact(_email=mail))
             except AttributeError as e:
@@ -480,7 +488,7 @@ class GroupEditor(Toplevel):
         self.destroy()
 
 class ContactList(Toplevel):
-    def __init__(self, parent: Toplevel, group: Group | None = None) -> None:
+    def __init__(self, parent: Toplevel | GroupEditor, group: Group | None = None) -> None:
         super().__init__(parent)
         self.group = group
         self.parent = parent
@@ -515,30 +523,47 @@ class ContactList(Toplevel):
         
         # TODO Scroll - chyba popsułem ale idk, mało istotne teraz
         self.contact_canvas.configure(scrollregion=self.contact_canvas.bbox("all"))
+        self.update()
+        
+    def clearEntries(self):
+        for widget in self.contact_inner_frame.winfo_children():
+            widget.destroy()
+    
+    def update(self):
+        self.clearEntries()
         self.populateWindow()
-
         
     def populateWindow(self):
         # TODO: Sortowanie powinno być od elementów w grupie, a później wszystkie pozostałe z bazy
+        shouldAddButton = self.parent != None and isinstance(self.parent, GroupEditor)
         for idx, c in enumerate(Contact.all_instances):
-            self.create_contact_widget(c, idx)
+            self.create_contact_widget(c, idx, addBtn=shouldAddButton)
         
         # if self.group:
         #     for idx, c in enumerate(GroupController.get_contacts(self.group)):
         #         # TODO: Oznaczanie checkboxami który kontakt jest już dodany do grupy
         #         continue
            
-    def create_contact_widget(self, c: Contact, idx: int):
+    def create_contact_widget(self, c: Contact, idx: int, addBtn: bool):
         Label(self.contact_inner_frame, text=f"Mail {idx+1}:").grid(row=idx, column=0, padx=5, pady=5)
         Label(self.contact_inner_frame, text=f"{c.email} - {c.first_name} {c.last_name}").grid(row=idx, column=1, padx=5, pady=5)
-        Button(self.contact_inner_frame, text="Dodaj kontakt", bg="lightblue", fg="black").grid(row=idx, column=2, padx=5, pady=5)
-        # command=GroupController.add_contact(self.group, c) - brak odniesienia do obiektu GroupController
-        # TODO: Tutaj pewnie braknie update parenta przy naciśnięciu przycisku
+        if addBtn:
+            Button(self.contact_inner_frame, text="Dodaj kontakt", bg="lightblue", fg="black", command=lambda: self.add_contact_to_group(c)).grid(row=idx, column=2, padx=5, pady=5)
+
+    def add_contact_to_group(self, c: Contact):
+        if self.group == None:
+            return # No corresponding GroupEditor - no need to update, button which triggers it shouldnt exist
         
+        try:    
+            GroupController.add_contact(self.group, c)
+            if isinstance(self.parent, GroupEditor):
+                self.parent.update()
+        except IntegrityError:
+            pass # Kiedy już istnieje taki wpis
+                
     def search_contact(self):
         search_criteria = self.search_entry.get().strip()
-        for widget in self.contact_inner_frame.winfo_children():
-            widget.destroy()
+        self.clearEntries()
         
         # TODO: Tutaj trzeba przemyśleć kiedy pojawiają się wszystkie kontakty, kiedy tylko te grupy, dodać wyszarzanie itd
         for idx, c in enumerate(Contact.all_instances):
@@ -552,20 +577,20 @@ class ContactList(Toplevel):
         
 
 class AddContactWindow(Toplevel):
-    def __init__(self, parent: Toplevel) -> None:
+    def __init__(self, parent: Toplevel | ContactList) -> None:
         super().__init__(parent)
+        self.parent = parent
     
     def prepareInterface(self):
-        contact_window = Toplevel(self)
-        contact_window.title("Dodaj Kontakt")
+        self.title("Dodaj Kontakt")
 
-        email_label = Label(contact_window, text="Adres email:", bg="lightblue")
-        self.email_entry = Entry(contact_window, bg="white", fg="black")
-        name_label = Label(contact_window, text="Imię:", bg="lightblue")
-        self.name_entry = Entry(contact_window, bg="white", fg="black")
-        surname_label = Label(contact_window, text="Nazwisko:", bg="lightblue")
-        self.surname_entry = Entry(contact_window, bg="white", fg="black")
-        btn_add_contact = Button(contact_window, text="Dodaj kontakt", bg="lightblue", fg="black", command=self.add_manual_contact)
+        email_label = Label(self, text="Adres email:", bg="lightblue")
+        self.email_entry = Entry(self, bg="white", fg="black")
+        name_label = Label(self, text="Imię:", bg="lightblue")
+        self.name_entry = Entry(self, bg="white", fg="black")
+        surname_label = Label(self, text="Nazwisko:", bg="lightblue")
+        self.surname_entry = Entry(self, bg="white", fg="black")
+        btn_add_contact = Button(self, text="Dodaj kontakt", bg="lightblue", fg="black", command=self.add_manual_contact)
 
         email_label.grid(row=0, column=0, padx=5, pady=5)
         self.email_entry.grid(row=0, column=1, padx=5, pady=5)
@@ -580,7 +605,9 @@ class AddContactWindow(Toplevel):
         name = self.name_entry.get()
         surname = self.surname_entry.get()
         if email:
-            newContact = Contact(email=email, first_name=name, last_name=surname)
+            newContact = Contact(_email=email, _first_name=name, _last_name=surname)
+            self.parent.update()
+            self.destroy()
             # TODO: Jakiś sygnał do parenta żeby się zaktualizował?
         else:
             messagebox.showerror("Błąd", "Podaj adres e-mail")

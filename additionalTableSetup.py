@@ -32,15 +32,4 @@ class GroupContacts(declarative_base()):
     def __init__(self, **kwargs):
         self.group_id: int = kwargs.pop("group_id")
         self.contact_id: str = kwargs.pop("contact_id")
-    
-    # @classmethod
-    # def FromGroup(cls, g: Group):
-    #     [GroupContacts(group_id=g.id, contact_id=c_iter) for c_iter in g.contacts]
-    
-    # @classmethod
-    # def get_contacts(cls, group_id: int) -> list[Contact | None]:
-        
-    
-    # def add_record(self, c: Iterable[Contact], g: Group):
-    #     for c in self.contacts:
-    #         g._add_contact(c)
+

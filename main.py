@@ -36,7 +36,7 @@ def pushQueuedInstances():
 
 if __name__ == "__main__":
     db = DatabaseHandler(dbURL, tables)
-    gc = GroupController(db)
+    GroupController.setDbHandler(db)
     ui = AppUI()
     ui.prepareInterface()
     
