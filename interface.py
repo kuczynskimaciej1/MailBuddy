@@ -2,10 +2,10 @@ from collections.abc import Callable, Iterable
 from types import TracebackType
 from traceback import print_tb
 from typing import Literal, Any, NoReturn
-from tkinter import Menu, simpledialog, ttk, Listbox, Tk, Text, Button, Frame, Label, Entry, Scrollbar, Toplevel, Misc, messagebox, Menubutton, RAISED, VERTICAL, Canvas
+from tkinter import Menu, simpledialog, ttk, Listbox, Tk, Text, Button, Frame, Label, Entry, Scrollbar, Toplevel, Misc, messagebox, Menubutton, Canvas, VERTICAL, RAISED
 from tkinter.ttk import Combobox
 from tkinter.constants import NORMAL, DISABLED, BOTH, RIDGE, END, LEFT, RIGHT, TOP, X, Y, INSERT, SEL, WORD
-from group_controller import GroupController\\\\\\
+from group_controller import GroupController
 from models import Contact, IModel, Template, Group
 from tkhtmlview import HTMLLabel
 
@@ -14,42 +14,67 @@ def errorHandler(xd, exctype: type, excvalue: Exception, tb: TracebackType):
     print(msg)
     simpledialog.messagebox.showerror("Error", msg)
 
+
 Tk.report_callback_exception = errorHandler
 
-class LoginWindow():
+
+class Settings:
     def __init__(self, root):
         self.root = root
-        self.root.title("Logowanie")
+        self.root.title("Ustawienia")
         self.root.configure(bg="lightblue")
-        self.root.geometry("300x200")
+        self.root.geometry("400x400")
 
     def prepareInterface(self):
-        label = Label(self.root, text="MailBuddy", bg="lightblue", font=("Helvetica", 24))
+        label = Label(
+            self.root,
+            text="MailBuddy",
+            bg="lightblue",
+            font=("Helvetica", 24))
         label.pack(pady=20)
 
-        self.username_entry = Entry(self.root, bg="white", fg="black")
-        self.username_entry.pack(pady=5)
+        example_emails = ["example1@example.com", "example2@example.com", "example3@example.com"]
 
-        self.password_entry = Entry(self.root, bg="white", fg="black", show="*")
-        self.password_entry.pack(pady=5)
+        self.email_combobox = Combobox(self.root, values=example_emails)
+        self.email_combobox.pack(pady=5)
 
-        login_button = Button(self.root, text="Zaloguj się", bg="lightblue", fg="black", command=self.login)
-        login_button.pack(pady=10)
+        connect_button = Button(
+            self.root,
+            text="Połącz",
+            bg="lightblue",
+            fg="black",
+            command=self.connect)
+        connect_button.pack(pady=5)
 
-    def login(self):
-        username = self.username_entry.get()
-        password = self.password_entry.get()
+        change_email_button = Button(
+            self.root,
+            text="Dodaj nowy adres mailowy",
+            bg="lightblue",
+            fg="black",
+            command=self.change_email)
+        change_email_button.pack(pady=5)
 
-        # TODO połączyć z faktycznym logowaniem, tj tworzeniem Senderów i Readerów
-        #  dane logowania czy są test
-        if username == "test" and password == "test":
-            self.root.destroy() 
-            app = AppUI()  
-            app.prepareInterface() 
-            app.run()  
-        else:
-            # TODO Może wystarczy pokazywać czerwony napis pod "Zaloguj się" + komunikat
-            messagebox.showerror("Błąd logowania", "Nieprawidłowa nazwa użytkownika lub hasło")
+        close_button = Button(
+            self.root,
+            text="Wyłącz aplikację",
+            bg="lightblue",
+            fg="black",
+            command=self.close)
+        close_button.pack(pady=5)
+
+    def connect(self):
+        email = self.email_combobox.get()
+        # TODO: połączenie z pocztą
+        messagebox.showinfo("Połączenie", f"Połączono z {email}")
+
+    def change_email(self):
+        new_email = simpledialog.askstring(
+            "Zmień adres e-mail", "Dodaj nowy adres e-mail")
+        if new_email:
+            self.email_combobox.set(new_email)
+
+    def close(self):
+        self.root.destroy()
 
 class AppUI():
     def __init__(self) -> None:
@@ -72,7 +97,8 @@ class AppUI():
         self.__create_mail_input_pane()
 
     def add_periodic_task(self, period: int, func: Callable):
-        # TODO można poprawić żeby się odpalało tylko przy dodaniu obiektu, przemyśleć
+        # TODO można poprawić żeby się odpalało tylko przy dodaniu obiektu,
+        # przemyśleć
         def wrapper():
             func()
             self.root.after(period, wrapper)
@@ -91,7 +117,8 @@ class AppUI():
             if content not in self.szablony:
                 self.szablony.append(content)
         else:
-            [self.szablony.append(i) for i in content if i not in self.szablony]
+            [self.szablony.append(i)
+             for i in content if i not in self.szablony]
         self.__update_listbox(self.template_listbox, self.szablony)
 
     def add_group(self, g: Group | Iterable[Group]):
@@ -155,7 +182,9 @@ class AppUI():
             lb.delete(0, END)
             [lb.insert(END, k) for k in content.keys()]
         else:
-            raise AttributeError(f"Wrong type of 'content', expected dict or Iterable, got {type(content)}")
+            raise AttributeError(
+                f"Wrong type of 'content', expected dict or Iterable, got {
+                    type(content)}")
 
     def __add_template_clicked(self):
         self.show_template_window()
@@ -167,47 +196,55 @@ class AppUI():
         file_menu.add_command(label="Import", command=self.__importuj_clicked)
         file_menu.add_command(label="Export", command=self.__eksportuj_clicked)
         menubar.add_cascade(label="File", menu=file_menu)
-        
+
         edit_menu = Menu(menubar, tearoff=0)
         add_menu = Menu(edit_menu, tearoff=0)
-        add_menu.add_command(label="Template", command=self.__add_template_clicked)
+        add_menu.add_command(
+            label="Template",
+            command=self.__add_template_clicked)
         add_menu.add_command(label="Group", command=self.__add_group_clicked)
         edit_menu.add_cascade(label="Add...", menu=add_menu)
         menubar.add_cascade(label="Edit", menu=edit_menu)
-        
+
         self.root.config(menu=menubar)
 
     def __create_navigation(self):
         navigation_frame = Frame(self.root, bg="lightblue")
-        
-        
+
         btn_plik = Menubutton(
             navigation_frame, text="Plik", bg="lightblue", fg="black", relief=RAISED, bd=2)
         plik_menu = Menu(btn_plik, tearoff=0)
-        plik_menu.add_command(label="Importuj", command=self.__importuj_clicked)
-        plik_menu.add_command(label="Eksportuj", command=self.__eksportuj_clicked)
+        plik_menu.add_command(
+            label="Importuj",
+            command=self.__importuj_clicked)
+        plik_menu.add_command(
+            label="Eksportuj",
+            command=self.__eksportuj_clicked)
         btn_plik.configure(menu=plik_menu)
 
-
         btn_plik = Menubutton(
             navigation_frame, text="Plik", bg="lightblue", fg="black", relief=RAISED, bd=2)
         plik_menu = Menu(btn_plik, tearoff=0)
-        plik_menu.add_command(label="Importuj", command=self.__importuj_clicked)
-        plik_menu.add_command(label="Eksportuj", command=self.__eksportuj_clicked)
+        plik_menu.add_command(
+            label="Importuj",
+            command=self.__importuj_clicked)
+        plik_menu.add_command(
+            label="Eksportuj",
+            command=self.__eksportuj_clicked)
         btn_plik.configure(menu=plik_menu)
 
         btn_wyslij = Button(navigation_frame, text="Wyślij", bg="lightblue", fg="black",
-                               command=lambda: self.__send_clicked()
-                               )
+                            command=lambda: self.__send_clicked()
+                            )
         btn_usun = Button(navigation_frame, text="Usuń", bg="lightblue", fg="black",
-                             # command=lambda: self.usun_tekst(entry_text)
-                             )
+                          # command=lambda: self.usun_tekst(entry_text)
+                          )
         btn_grupy = Button(navigation_frame, text="Grupy", bg="lightblue", fg="black",
-                   command=lambda: self.__add_group_clicked())
+                           command=lambda: self.__add_group_clicked())
         btn_szablony = Button(navigation_frame, text="Templates", bg="lightblue", fg="black",
-                                 command=lambda: self.__add_template_clicked())
+                              command=lambda: self.__add_template_clicked())
         btn_settings = Button(navigation_frame, text="Ustawienia", bg="lightblue", fg="black",
-                             command=self.logout)
+                              command=self.logout)
 
         navigation_frame.pack(side=TOP, fill=X)
         btn_wyslij.pack(side=LEFT, padx=5, pady=5)
@@ -232,7 +269,9 @@ class AppUI():
         grupy_label = Label(
             groups_frame, text="Grupy mailowe", bg="lightblue")
         self.grupy_listbox = Listbox(groups_frame, bg="lightblue", fg="black")
-        self.grupy_listbox.bind('<<ListboxSelect>>', self.__group_selection_changed)
+        self.grupy_listbox.bind(
+            '<<ListboxSelect>>',
+            self.__group_selection_changed)
         self.grupy_listbox.bind('<Double-1>', self.__group_doubleclicked)
 
         groups_frame.pack(side=LEFT, padx=10, pady=10,
@@ -247,7 +286,9 @@ class AppUI():
             templates_frame, text="Szablony wiadomości", bg="lightblue")
         self.template_listbox = Listbox(
             templates_frame, bg="lightblue", fg="black")
-        self.template_listbox.bind('<<ListboxSelect>>', self.__template_selection_changed)
+        self.template_listbox.bind(
+            '<<ListboxSelect>>',
+            self.__template_selection_changed)
         self.template_listbox.bind('<Double-1>', self.__template_doubleclicked)
 
         templates_frame.pack(side=LEFT, padx=10, pady=10,
@@ -280,18 +321,20 @@ class AppUI():
         self.template_window.prepareInterface()
 
     def logout(self):
-        # TODO to jest do zmiany, okno powinno zostać przemianowane na ustawienia, gdzie 
+        # TODO to jest do zmiany, okno powinno zostać przemianowane na ustawienia, gdzie
         # logujemy się do providerów poczty, sam program nie ma blokady
         # względem użytkownika
 
         self.root.destroy()  # Zamknij główne okno aplikacji
         root = Tk()  # Otwórz ponownie okno logowania
-        login_window = LoginWindow(root)
-        login_window.prepareInterface()
+        settings = Settings(root)
+        settings.prepareInterface()
         root.mainloop()
 
+
 class TemplateEditor(Toplevel):
-    def __init__(self, parent: AppUI, master: Misc, obj: Template | None = None):
+    def __init__(self, parent: AppUI, master: Misc,
+                 obj: Template | None = None):
         super().__init__(master)
         self.parent = parent
         self.current_combo = None
@@ -306,30 +349,37 @@ class TemplateEditor(Toplevel):
         name_entry = Entry(self, bg="white", fg="black")
         name_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
         if self.currentTemplate:
-            name_entry.insert(INSERT, self.currentTemplate.name if self.currentTemplate.name is not None else "")
+            name_entry.insert(
+                INSERT,
+                self.currentTemplate.name if self.currentTemplate.name is not None else "")
 
         template_text = Text(self, bg="lightblue", fg="black", wrap=WORD)
         template_text.grid(row=1, column=0, columnspan=2,
                            padx=5, pady=5, sticky="nsew")
         if self.currentTemplate:
-            template_text.insert(INSERT, self.currentTemplate.content if self.currentTemplate.content is not None else "")
+            template_text.insert(
+                INSERT,
+                self.currentTemplate.content if self.currentTemplate.content is not None else "")
 
         btn_save = Button(self, text="Zapisz", bg="lightblue", fg="black", command=lambda: self.__save_template_clicked(
             name_entry.get(), template_text.get(1.0, END)))
         btn_save.grid(row=2, column=0, padx=5, pady=5, sticky="e")
 
         btn_insert_placeholder = Button(self, text="Wstaw luke", bg="lightblue", fg="black",
-                                           command=lambda: self.__template_window_insert_placeholder(template_text))
+                                        command=lambda: self.__template_window_insert_placeholder(template_text))
         btn_insert_placeholder.grid(
             row=2, column=1, padx=5, pady=5, sticky="w")
 
-    def __save_template_clicked(self, template_name: str, template_content: str) -> None:
+    def __save_template_clicked(
+            self, template_name: str, template_content: str) -> None:
         if template_name != "" and template_content != "":
-            self.currentTemplate = Template(_name=template_name, _content=template_content)
+            self.currentTemplate = Template(
+                _name=template_name, _content=template_content)
             self.parent.add_template(self.currentTemplate)
         self.destroy()
 
-    def __template_window_insert_placeholder(self, template_text: str, placeholders: list[str] = []) -> None:
+    def __template_window_insert_placeholder(
+            self, template_text: str, placeholders: list[str] = []) -> None:
         placeholder_text = "_____"
 
         def on_placeholder_selection(event):
@@ -375,6 +425,7 @@ class TemplateEditor(Toplevel):
                 f"{start_index}+{len(placeholder_text)}c")
             template_text.tag_add("placeholder", start_index, end_index)
             start_index = end_index
+
 
 class GroupEditor(Toplevel):
     def __init__(self, parent: AppUI, edited: Group | None = None):
@@ -506,7 +557,7 @@ class AddContactWindow(Toplevel):
     
     def prepareInterface(self):
         contact_window = Toplevel(self)
-        contact_window.title("Dodaj kontakt ręcznie")
+        contact_window.title("Dodaj Kontakt")
 
         email_label = Label(contact_window, text="Adres email:", bg="lightblue")
         self.email_entry = Entry(contact_window, bg="white", fg="black")
