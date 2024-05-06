@@ -5,6 +5,7 @@ from typing import Literal, Any, NoReturn
 from tkinter import Menu, simpledialog, ttk, Listbox, Tk, Text, Button, Frame, Label, Entry, Scrollbar, Toplevel, Misc, messagebox, Menubutton, RAISED, VERTICAL, Canvas
 from tkinter.ttk import Combobox
 from tkinter.constants import NORMAL, DISABLED, BOTH, RIDGE, END, LEFT, RIGHT, TOP, X, Y, INSERT, SEL, WORD
+from group_controller import GroupController\\\\\\
 from models import Contact, IModel, Template, Group
 from tkhtmlview import HTMLLabel
 
@@ -376,147 +377,41 @@ class TemplateEditor(Toplevel):
             start_index = end_index
 
 class GroupEditor(Toplevel):
-    def __init__(self, parent: AppUI, groupName: str | None = None, edited: Group | None = None):
+    def __init__(self, parent: AppUI, edited: Group | None = None):
         super().__init__(parent.root)
         self.parent = parent
         self.currentGroup = edited
 
     def prepareInterface(self):
-        self.title("Dodaj grupę")
-
         name_label = Label(self, text="Nazwa grupy:", bg="lightblue")
-        name_label.grid(row=0, column=0, padx=5, pady=5)
-
         self.name_entry = Entry(self, bg="white", fg="black")
-        self.name_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
-
         email_label = Label(self, text="Adresy email:", bg="lightblue")
-        email_label.grid(row=1, column=0, padx=5, pady=5)
-
         self.email_text = Text(self, bg="lightblue", fg="black", wrap=WORD)
+        btn_add_list_contact = Button(self, text="Dodaj z listy", bg="lightblue", fg="black", command=self.add_contact_from_list_window)
+        btn_save = Button(self, text="Zapisz", bg="lightblue", fg="black", command=self.__save_group_clicked)
+        
+        name_label.grid(row=0, column=0, padx=5, pady=5)
+        self.name_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        email_label.grid(row=1, column=0, padx=5, pady=5)
         self.email_text.grid(row=1, column=1, padx=5, pady=5, sticky="nsew")
-
+        btn_add_list_contact.grid(row=2, column=0, padx=5, pady=5, sticky="ew")
+        # btn_add_manual_contact.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
+        btn_save.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+        
         if self.currentGroup:
+            self.title(f"Edytuj grupę {self.currentGroup.name}")
             self.name_entry.insert(INSERT, self.currentGroup.name)
             [self.add_contact(c) for c in self.currentGroup.contacts]
+        else:
+            self.title("Dodaj grupę")
 
-        btn_add_list_contact = Button(self, text="Dodaj z listy", bg="lightblue", fg="black", command=self.add_contact_from_list_window)
-        btn_add_list_contact.grid(row=2, column=0, padx=5, pady=5, sticky="ew")
-
-        btn_add_manual_contact = Button(self, text="Dodaj ręcznie", bg="lightblue", fg="black", command=self.add_manual_contact_window)
-        btn_add_manual_contact.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
-
-        btn_save = Button(self, text="Zapisz", bg="lightblue", fg="black", command=self.__save_group_clicked)
-        btn_save.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
-
-    def add_contact(self, c: 'Contact'):
-        self.email_text.insert(INSERT, str(c.email) + "\n")  
+    def add_contact(self, c: Contact):
+        self.email_text.insert(INSERT, str(c.email) + "\n")
 
     def add_contact_from_list_window(self):
-        def search_contact():
-            search_criteria = search_entry.get().strip().lower()
-            for widget in contact_inner_frame.winfo_children():
-                widget.destroy()
-            for idx, (email, name, surname) in enumerate(fake_data):
-                if search_criteria in name.lower() or search_criteria in surname.lower() or search_criteria in email.lower():
-                    Label(contact_inner_frame, text=f"Mail {idx+1}:").grid(row=idx, column=0, padx=5, pady=5)
-                    Label(contact_inner_frame, text=f"{email} - {name} {surname}").grid(row=idx, column=1, padx=5, pady=5)
-                    Button(contact_inner_frame, text="Dodaj kontakt", bg="lightblue", fg="black", command=lambda email=email: add_contact_from_list(email)).grid(row=idx, column=2, padx=5, pady=5)
-
-        contact_window = Toplevel(self)
-        contact_window.title("Dodaj kontakt z listy")
-        
-        group_editor_geometry = self.winfo_geometry()
-        
-        contact_window.geometry(group_editor_geometry)
-
-        contact_frame = Frame(contact_window)
-        contact_frame.pack(fill=BOTH, expand=True)
-
-        search_frame = Frame(contact_frame, bg="lightblue")
-        search_frame.pack(fill=X, padx=5, pady=5)
-
-        search_label = Label(search_frame, text="Wyszukaj:", bg="lightblue")
-        search_label.pack(side=LEFT, padx=5, pady=5)
-
-        search_entry = Entry(search_frame, bg="white", fg="black")
-        search_entry.pack(side=LEFT, padx=5, pady=5, expand=True, fill=X)
-
-        search_button = Button(search_frame, text="Szukaj", bg="lightblue", fg="black", command=search_contact)
-        search_button.pack(side=LEFT, padx=5, pady=5)
-
-        scrollbar = Scrollbar(contact_frame, orient=VERTICAL)
-        scrollbar.pack(side=RIGHT, fill=Y)
-
-        contact_canvas = Canvas(contact_frame, yscrollcommand=scrollbar.set)
-        contact_canvas.pack(side=LEFT, fill=BOTH, expand=True)
-
-        scrollbar.config(command=contact_canvas.yview)
-
-        contact_inner_frame = Frame(contact_canvas)
-        contact_canvas.create_window((0, 0), window=contact_inner_frame, anchor='nw')
-
-        fake_data = [("mail1@example.com", "John", "Doe"),
-                    ("mail2@example.com", "Jane", "Smith"),
-                    ("mail3@example.com", "Michael", "Johnson"),
-                    ("mail4@example.com", "Emily", "Brown"),
-                    ("mail5@example.com", "William", "Jones"),
-                    ("mail6@example.com", "Olivia", "Taylor"),
-                    ("mail7@example.com", "David", "Anderson"),
-                    ("mail8@example.com", "Sophia", "Thomas"),
-                    ("mail9@example.com", "James", "Jackson"),
-                    ("mail10@example.com", "Emma", "White"),
-                    ("mail11@example.com", "Benjamin", "Harris"),
-                    ("mail12@example.com", "Isabella", "Martin"),
-                    ("mail13@example.com", "Daniel", "Thompson"),
-                    ("mail14@example.com", "Ava", "Garcia"),
-                    ("mail15@example.com", "Alexander", "Martinez"),
-                    ("mail16@example.com", "TEST", "16"),
-                    ("mail17@example.com", "TEST", "17")]
-
-        def add_contact_from_list(email):
-            self.email_text.insert(END, email + "\n")  
-
-        for idx, (email, name, surname) in enumerate(fake_data):
-            Label(contact_inner_frame, text=f"Mail {idx+1}:").grid(row=idx, column=0, padx=5, pady=5)
-            Label(contact_inner_frame, text=f"{email} - {name} {surname}").grid(row=idx, column=1, padx=5, pady=5)
-            Button(contact_inner_frame, text="Dodaj kontakt", bg="lightblue", fg="black", command=lambda email=email: add_contact_from_list(email)).grid(row=idx, column=2, padx=5, pady=5)
-
-        def on_frame_configure(event):
-            contact_canvas.configure(scrollregion=contact_canvas.bbox("all"))
-
-        contact_inner_frame.bind("<Configure>", on_frame_configure)
-
-    def add_manual_contact_window(self):
-        contact_window = Toplevel(self)
-        contact_window.title("Dodaj kontakt ręcznie")
-
-        email_label = Label(contact_window, text="Adres email:", bg="lightblue")
-        email_label.grid(row=0, column=0, padx=5, pady=5)
-        self.email_entry = Entry(contact_window, bg="white", fg="black")
-        self.email_entry.grid(row=0, column=1, padx=5, pady=5)
-
-        name_label = Label(contact_window, text="Imię:", bg="lightblue")
-        name_label.grid(row=1, column=0, padx=5, pady=5)
-        self.name_entry = Entry(contact_window, bg="white", fg="black")
-        self.name_entry.grid(row=1, column=1, padx=5, pady=5)
-
-        surname_label = Label(contact_window, text="Nazwisko:", bg="lightblue")
-        surname_label.grid(row=2, column=0, padx=5, pady=5)
-        self.surname_entry = Entry(contact_window, bg="white", fg="black")
-        self.surname_entry.grid(row=2, column=1, padx=5, pady=5)
-
-        btn_add_contact = Button(contact_window, text="Dodaj kontakt", bg="lightblue", fg="black", command=self.add_manual_contact)
-        btn_add_contact.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
-
-    def add_manual_contact(self):
-        email = self.email_entry.get()
-        name = self.name_entry.get()
-        surname = self.surname_entry.get()
-        if email:
-            self.email_text.insert(END, f"{email}\n")
-        else:
-            messagebox.showerror("Błąd", "Podaj adres e-mail")
+        contact_list_window = ContactList(self, self.currentGroup)
+        contact_list_window.prepareInterface()
+        # TODO: Odebrać info o dodawanych kontaktach, wywoływać add_contact
 
     def __save_group_clicked(self) -> None:
         if not self.currentGroup:
@@ -529,7 +424,112 @@ class GroupEditor(Toplevel):
             try:
                 self.currentGroup._add_contact(Contact(_email=mail))
             except AttributeError as e:
-                # print(e)
                 raise e
         self.parent.add_group(self.currentGroup)
         self.destroy()
+
+class ContactList(Toplevel):
+    def __init__(self, parent: Toplevel, group: Group | None = None) -> None:
+        super().__init__(parent)
+        self.group = group
+        self.parent = parent
+
+    def prepareInterface(self):
+        self.title("Dodaj kontakt z listy")
+        
+        group_editor_geometry = self.parent.winfo_geometry()
+        self.geometry(group_editor_geometry)
+
+        contact_frame = Frame(self)
+        search_frame = Frame(contact_frame, bg="lightblue")
+        search_label = Label(search_frame, text="Wyszukaj:", bg="lightblue")
+        self.search_entry = Entry(search_frame, bg="white", fg="black")
+        search_button = Button(search_frame, text="Szukaj", bg="lightblue", fg="black", command=self.search_contact)
+        add_contact_button = Button(search_frame, text="Dodaj nowy kontakt", bg="lightblue", fg="black", command=self.add_manual_contact_window)
+        scrollbar = Scrollbar(contact_frame, orient=VERTICAL)
+        self.contact_canvas = Canvas(contact_frame, yscrollcommand=scrollbar.set)
+        self.contact_inner_frame = Frame(self.contact_canvas)
+        
+        scrollbar.config(command=self.contact_canvas.yview)
+
+        contact_frame.pack(fill=BOTH, expand=True)
+        search_frame.pack(fill=X, padx=5, pady=5)
+        search_label.pack(side=LEFT, padx=5, pady=5)
+        self.search_entry.pack(side=LEFT, padx=5, pady=5, expand=True, fill=X)
+        search_button.pack(side=LEFT, padx=5, pady=5)
+        add_contact_button.pack(side=LEFT, padx=5, pady=5)
+        scrollbar.pack(side=RIGHT, fill=Y)
+        self.contact_canvas.pack(side=LEFT, fill=BOTH, expand=True)
+        self.contact_canvas.create_window((0, 0), window=self.contact_inner_frame, anchor='nw')
+        
+        # TODO Scroll - chyba popsułem ale idk, mało istotne teraz
+        self.contact_canvas.configure(scrollregion=self.contact_canvas.bbox("all"))
+        self.populateWindow()
+
+        
+    def populateWindow(self):
+        # TODO: Sortowanie powinno być od elementów w grupie, a później wszystkie pozostałe z bazy
+        for idx, c in enumerate(Contact.all_instances):
+            self.create_contact_widget(c, idx)
+        
+        # if self.group:
+        #     for idx, c in enumerate(GroupController.get_contacts(self.group)):
+        #         # TODO: Oznaczanie checkboxami który kontakt jest już dodany do grupy
+        #         continue
+           
+    def create_contact_widget(self, c: Contact, idx: int):
+        Label(self.contact_inner_frame, text=f"Mail {idx+1}:").grid(row=idx, column=0, padx=5, pady=5)
+        Label(self.contact_inner_frame, text=f"{c.email} - {c.first_name} {c.last_name}").grid(row=idx, column=1, padx=5, pady=5)
+        Button(self.contact_inner_frame, text="Dodaj kontakt", bg="lightblue", fg="black").grid(row=idx, column=2, padx=5, pady=5)
+        # command=GroupController.add_contact(self.group, c) - brak odniesienia do obiektu GroupController
+        # TODO: Tutaj pewnie braknie update parenta przy naciśnięciu przycisku
+        
+    def search_contact(self):
+        search_criteria = self.search_entry.get().strip()
+        for widget in self.contact_inner_frame.winfo_children():
+            widget.destroy()
+        
+        # TODO: Tutaj trzeba przemyśleć kiedy pojawiają się wszystkie kontakty, kiedy tylko te grupy, dodać wyszarzanie itd
+        for idx, c in enumerate(Contact.all_instances):
+            if search_criteria in c.first_name or search_criteria in c.last_name or search_criteria in c.email:
+                self.create_contact_widget(c, idx)
+ 
+    def add_manual_contact_window(self):
+        acw = AddContactWindow(self)
+        acw.prepareInterface()
+        # TODO: Odebrać sygnał od acw, create_contact_widget, powiadomić parent
+        
+
+class AddContactWindow(Toplevel):
+    def __init__(self, parent: Toplevel) -> None:
+        super().__init__(parent)
+    
+    def prepareInterface(self):
+        contact_window = Toplevel(self)
+        contact_window.title("Dodaj kontakt ręcznie")
+
+        email_label = Label(contact_window, text="Adres email:", bg="lightblue")
+        self.email_entry = Entry(contact_window, bg="white", fg="black")
+        name_label = Label(contact_window, text="Imię:", bg="lightblue")
+        self.name_entry = Entry(contact_window, bg="white", fg="black")
+        surname_label = Label(contact_window, text="Nazwisko:", bg="lightblue")
+        self.surname_entry = Entry(contact_window, bg="white", fg="black")
+        btn_add_contact = Button(contact_window, text="Dodaj kontakt", bg="lightblue", fg="black", command=self.add_manual_contact)
+
+        email_label.grid(row=0, column=0, padx=5, pady=5)
+        self.email_entry.grid(row=0, column=1, padx=5, pady=5)
+        name_label.grid(row=1, column=0, padx=5, pady=5)
+        self.name_entry.grid(row=1, column=1, padx=5, pady=5)
+        surname_label.grid(row=2, column=0, padx=5, pady=5)
+        self.surname_entry.grid(row=2, column=1, padx=5, pady=5)
+        btn_add_contact.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+
+    def add_manual_contact(self):
+        email = self.email_entry.get()
+        name = self.name_entry.get()
+        surname = self.surname_entry.get()
+        if email:
+            newContact = Contact(email=email, first_name=name, last_name=surname)
+            # TODO: Jakiś sygnał do parenta żeby się zaktualizował?
+        else:
+            messagebox.showerror("Błąd", "Podaj adres e-mail")

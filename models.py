@@ -103,8 +103,8 @@ class Contact(IModel):
     __tablename__ = "Contacts"
 
     _email = Column("email", String(100), primary_key=True)
-    _first_name = Column("first_name", String(50), nullable=True)
-    _last_name = Column("last_name", String(50), nullable=True)
+    _first_name = Column("first_name", String(50))
+    _last_name = Column("last_name", String(50))
 
     def __init__(self, **kwargs) -> None:
         """Creates instance and adds it to all_instances
@@ -116,8 +116,8 @@ class Contact(IModel):
             AttributeError: when email doesn't match standard pattern
         """
         self.email = kwargs.pop("_email", None)
-        self.first_name = kwargs.pop("_first_name", None)
-        self.last_name = kwargs.pop("_last_name", None)
+        self.first_name = kwargs.pop("_first_name", "")
+        self.last_name = kwargs.pop("_last_name", "")
         Contact.all_instances.append(self)
         IModel.queueSave(child=self)
 
@@ -138,7 +138,7 @@ class Contact(IModel):
 
     @staticmethod
     def isEmail(candidate: str) -> bool:
-        if re.match(r"[^@]+@[^@]+\.[^@]+", candidate):
+        if re.match(r"^(?!.*@.*@.*$)[^@]+@[^@]+\.[^@]+$", candidate):
             return True
         return False
     
