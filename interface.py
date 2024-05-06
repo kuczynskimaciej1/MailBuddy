@@ -9,6 +9,7 @@ from tkinter.constants import NORMAL, DISABLED, BOTH, RIDGE, END, LEFT, RIGHT, T
 from group_controller import GroupController
 from models import Contact, IModel, Template, Group
 from tkhtmlview import HTMLLabel
+from DataSources.dataSources import GapFillSource
 
 def errorHandler(xd, exctype: type, excvalue: Exception, tb: TracebackType):
     msg = f"{exctype}: {excvalue}, {print_tb(tb)}"
@@ -27,40 +28,42 @@ class Settings:
         self.root.geometry("400x400")
 
     def prepareInterface(self):
+        # TODO: tutaj powinniśmy ładować wartości z User
+        example_emails = ["example1@example.com", "example2@example.com", "example3@example.com"]
+        
         label = Label(
             self.root,
             text="MailBuddy",
             bg="lightblue",
             font=("Helvetica", 24))
-        label.pack(pady=20)
-
-        example_emails = ["example1@example.com", "example2@example.com", "example3@example.com"]
 
         self.email_combobox = Combobox(self.root, values=example_emails)
-        self.email_combobox.pack(pady=5)
-
+        
         connect_button = Button(
             self.root,
             text="Połącz",
             bg="lightblue",
             fg="black",
             command=self.connect)
-        connect_button.pack(pady=5)
-
+        
         change_email_button = Button(
             self.root,
             text="Dodaj nowy adres mailowy",
             bg="lightblue",
             fg="black",
             command=self.change_email)
-        change_email_button.pack(pady=5)
-
+        
         close_button = Button(
             self.root,
             text="Wyłącz aplikację",
             bg="lightblue",
             fg="black",
             command=self.close)
+        
+        label.pack(pady=20)
+        self.email_combobox.pack(pady=5)
+        connect_button.pack(pady=5)
+        change_email_button.pack(pady=5)
         close_button.pack(pady=5)
 
     def connect(self):
@@ -334,44 +337,45 @@ class AppUI():
         settings.prepareInterface()
         root.mainloop()
 
-
 class TemplateEditor(Toplevel):
     def __init__(self, parent: AppUI, master: Misc,
                  obj: Template | None = None):
         super().__init__(master)
         self.parent = parent
-        self.current_combo = None
+        self.current_combo: Combobox = None
         self.currentTemplate = obj
 
     def prepareInterface(self):
         self.title("Stwórz szablon")
 
         name_label = Label(self, text="Nazwa szablonu:", bg="lightblue")
-        name_label.grid(row=0, column=0, padx=5, pady=5)
-
         name_entry = Entry(self, bg="white", fg="black")
+        template_text = Text(self, bg="lightblue", fg="black", wrap=WORD)
+        btn_save = Button(self, text="Zapisz", bg="lightblue", fg="black", command=lambda: self.__save_template_clicked(
+            name_entry.get(), template_text.get(1.0, END)))
+        btn_insert_placeholder = Button(self, text="Wstaw luke", bg="lightblue", fg="black",
+                                        command=lambda: self.__template_window_insert_placeholder(template_text))
+        
+        name_label.grid(row=0, column=0, padx=5, pady=5)
         name_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        template_text.grid(row=1, column=0, columnspan=2,
+                           padx=5, pady=5, sticky="nsew")
+        btn_save.grid(row=2, column=0, padx=5, pady=5, sticky="e")
+        btn_insert_placeholder.grid(
+            row=2, column=1, padx=5, pady=5, sticky="w")
+        
+        
+        testGap = GapFillSource()
+        testGap.get_possible_values()
         if self.currentTemplate:
             name_entry.insert(
                 INSERT,
                 self.currentTemplate.name if self.currentTemplate.name is not None else "")
-
-        template_text = Text(self, bg="lightblue", fg="black", wrap=WORD)
-        template_text.grid(row=1, column=0, columnspan=2,
-                           padx=5, pady=5, sticky="nsew")
-        if self.currentTemplate:
+            
             template_text.insert(
                 INSERT,
                 self.currentTemplate.content if self.currentTemplate.content is not None else "")
-
-        btn_save = Button(self, text="Zapisz", bg="lightblue", fg="black", command=lambda: self.__save_template_clicked(
-            name_entry.get(), template_text.get(1.0, END)))
-        btn_save.grid(row=2, column=0, padx=5, pady=5, sticky="e")
-
-        btn_insert_placeholder = Button(self, text="Wstaw luke", bg="lightblue", fg="black",
-                                        command=lambda: self.__template_window_insert_placeholder(template_text))
-        btn_insert_placeholder.grid(
-            row=2, column=1, padx=5, pady=5, sticky="w")
+            
 
     def __save_template_clicked(
             self, template_name: str, template_content: str) -> None:
@@ -381,9 +385,16 @@ class TemplateEditor(Toplevel):
             self.parent.add_template(self.currentTemplate)
         self.destroy()
 
+    def hide_combobox(self):
+        if self.current_combo:
+            self.current_combo.destroy()
+
     def __template_window_insert_placeholder(
-            self, template_text: str, placeholders: list[str] = []) -> None:
+            self, template_text: str, placeholders: list[GapFillSource] = GapFillSource.all_instances) -> None:
         placeholder_text = "_____"
+        # combo_values = [key for key in [gap.possible_values.keys() for gap in placeholders]]
+        combo_values = [key for placeholder in placeholders for key in placeholder.possible_values]
+
 
         def on_placeholder_selection(event):
             selected_placeholder = self.current_combo.get()
@@ -393,28 +404,22 @@ class TemplateEditor(Toplevel):
                     template_text.delete(selected_text[0], selected_text[1])
                 template_text.insert(INSERT, selected_placeholder)
 
-        def hide_combobox():
-            if self.current_combo:
-                self.current_combo.place_forget()
-
         def show_placeholder_menu(event):
-            hide_combobox()
+            self.hide_combobox()
             self.current_combo = Combobox(
-                template_text, values=placeholders)
+                template_text, values=combo_values)
+            #TODO: Debug populating combobox
             self.current_combo.bind(
                 "<<ComboboxSelected>>", on_placeholder_selection)
             self.current_combo.place(x=event.x_root, y=event.y_root)
             self.current_combo.focus_set()
-            # Dodanie przycisku "x" do zamknięcia comboboxa
+            
             close_button = Button(
-                self.current_combo, text="X", command=hide_combobox, bg="white")
+                self.current_combo, text="X", command=self.hide_combobox, bg="white")
             close_button.place(relx=0, rely=0, anchor="nw")
 
         template_text.insert(INSERT, placeholder_text)
         template_text.tag_configure("placeholder", background="lightgreen")
-
-        if not hasattr(self, 'current_combo'):
-            self.current_combo = None
 
         template_text.bind("<Button-3>", show_placeholder_menu)
 
@@ -428,7 +433,6 @@ class TemplateEditor(Toplevel):
                 f"{start_index}+{len(placeholder_text)}c")
             template_text.tag_add("placeholder", start_index, end_index)
             start_index = end_index
-
 
 class GroupEditor(Toplevel):
     def __init__(self, parent: AppUI, edited: Group | None = None):
@@ -574,7 +578,6 @@ class ContactList(Toplevel):
         acw = AddContactWindow(self)
         acw.prepareInterface()
         # TODO: Odebrać sygnał od acw, create_contact_widget, powiadomić parent
-        
 
 class AddContactWindow(Toplevel):
     def __init__(self, parent: Toplevel | ContactList) -> None:

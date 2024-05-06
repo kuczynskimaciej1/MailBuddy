@@ -1,11 +1,13 @@
+from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable
 from enum import Enum
 from pandas import read_csv, read_excel, DataFrame
 from additionalTableSetup import GroupContacts
-import models
+from models import IModel, Contact
 import sqlalchemy as alchem
 import sqlalchemy.orm as orm
+from sqlalchemy.ext.hybrid import hybrid_property
 
 class SupportedDbEngines(Enum):
     SQLite=1
@@ -37,7 +39,7 @@ class IDataSource():
 
 
 class DatabaseHandler(IDataSource):
-    def __init__(self, connectionString: str, tableCreators: Iterable[models.IModel],
+    def __init__(self, connectionString: str, tableCreators: Iterable[IModel],
                  engine: SupportedDbEngines = SupportedDbEngines.SQLite) -> None:
         """
         Initializes handler, allowing query execution on provided server
@@ -74,7 +76,7 @@ class DatabaseHandler(IDataSource):
             dbIntact = False
         return dbIntact
 
-    def GetData(self, type: models.IModel, **kwargs) -> list:
+    def GetData(self, type: IModel, **kwargs) -> list:
         Session = orm.sessionmaker(bind=self.dbEngineInstance)
         with Session() as session:
             try:
@@ -88,7 +90,7 @@ class DatabaseHandler(IDataSource):
         return selectionResult
 
 
-    def instantiateClasses(self, missing_tables: list[str] | list[models.IModel]) -> None:
+    def instantiateClasses(self, missing_tables: list[str] | list[IModel]) -> None:
         for table_name in missing_tables:
             if isinstance(table_name, str):
                 table_name = next((cl for cl in self.tableCreators if cl.__tablename__ == table_name), None)
@@ -112,9 +114,9 @@ class DatabaseHandler(IDataSource):
                 except Exception as e:
                     print(e)
                     continue
-        models.IModel.run_loading = False
+        IModel.run_loading = False
 
-    def Save(self, obj: models.IModel | GroupContacts):
+    def Save(self, obj: IModel | GroupContacts):
         Session = orm.sessionmaker(bind=self.dbEngineInstance)
         with Session() as session:
             session.add(obj)
@@ -136,7 +138,7 @@ class XLSXHandler(IDataSource):
             return None
 
 
-class CSVXHandler(IDataSource):
+class CSVHandler(IDataSource):
     def __init__(self, path: str) -> None:
         self.file_path = path
         
@@ -149,3 +151,40 @@ class CSVXHandler(IDataSource):
         except Exception as e:
             print("Błąd podczas wczytywania pliku CSV:", e)
             return None
+        
+    @staticmethod
+    def ParseTo(dataFrameSlice: DataFrame):
+        pass
+
+class GapFillSource():
+    all_instances: list[GapFillSource] = []
+    
+    def __init__(self, source: IDataSource | IModel = Contact) -> None:
+        if isinstance(source, IDataSource):
+            self.iData: IDataSource = source
+        elif issubclass(source, IModel):
+            self.model_source: IModel = source
+        else:
+            raise AttributeError(f"Got {type(source)}, which is not IDataSource or IModel implementation")
+        self.possible_values: dict[str, str] = None
+        GapFillSource.all_instances.append(self)
+        
+    def get_possible_values(self):
+        # TODO: Powinien być jakiś globalny call do UI, ta klasa nie powinna o nim nic wiedzieć
+        if hasattr(self, "iData"):
+            idata_type = type(self.iData)
+            match(idata_type):
+                case type(DatabaseHandler):
+                    # openTablePicker()
+                    pass
+                case type(XLSXHandler):
+                    # openSheetPicker()
+                    pass
+                case type(CSVHandler):
+                    # openCsvPicker()
+                    pass
+        elif hasattr(self, "model_source"):
+            if self.model_source == Contact:
+                self.possible_values = { name: attr for name, attr in Contact.__dict__.items() if isinstance(attr, hybrid_property) and attr != "all_instances" }
+            else:
+                raise AttributeError(f"{type(self.model_source)} isn't supported")
