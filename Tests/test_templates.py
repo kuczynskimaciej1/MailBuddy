@@ -1,8 +1,8 @@
 import pytest
 import os
-from SQLite_operations_test import *
+from SQLite_operations_test import recreateDatabase, dropDatabase, createDatabase, getDatabaseHandler
+from DataSources.dataSources import DatabaseHandler
 from models import Template
-from sqlalchemy import Engine
 
 testSamplesPath = os.path.join(os.getcwd(), "Tests/Samples")
 
@@ -16,7 +16,7 @@ testSamplesPath = os.path.join(os.getcwd(), "Tests/Samples")
         "Template 5": "test_template_5.html"
     }.items()])
 def getTemplate(request) -> Template:
-    with open(request.param[1], "rb") as rb:
+    with open(request.param[1], "r") as rb:
         result = Template(_name=request.param[0], _content=rb.read())
     return result
 
@@ -29,14 +29,10 @@ def getTemplate(request) -> Template:
 def test_template_sqlite_insertable(recreateDatabase, getDatabaseHandler, getTemplate):
     t = getTemplate
     dbh: DatabaseHandler = getDatabaseHandler
-    engine: Engine = dbh.dbEngineInstance
     
     dbh.Save(t)
     
-    Session = sessionmaker(engine)
-    with Session() as session:
-        selectionResult: list[Template] = session.query(Template).filter_by(name=t.name).all()
-    engine.dispose()
+    selectionResult: list[Template] = dbh.GetData(Template, name=t.name)
     
     assert selectionResult is not None
     assert len(selectionResult) == 1

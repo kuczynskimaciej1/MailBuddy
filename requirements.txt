@@ -3,3 +3,4 @@ openpyxl
 sqlalchemy
 pytest
 faker
+tkhtmlview

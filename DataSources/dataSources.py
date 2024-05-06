@@ -2,6 +2,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable
 from enum import Enum
 from pandas import read_csv, read_excel, DataFrame
+from additionalTableSetup import GroupContacts
 import models
 import sqlalchemy as alchem
 import sqlalchemy.orm as orm
@@ -73,6 +74,19 @@ class DatabaseHandler(IDataSource):
             dbIntact = False
         return dbIntact
 
+    def GetData(self, type: models.IModel, **kwargs) -> list:
+        Session = orm.sessionmaker(bind=self.dbEngineInstance)
+        with Session() as session:
+            try:
+                if len(kwargs) > 0:
+                    selectionResult = session.query(type).filter_by(**kwargs).all()
+                else:
+                    selectionResult = session.query(type).all()
+            finally:
+                session.close()
+        self.dbEngineInstance.dispose()
+        return selectionResult
+
 
     def instantiateClasses(self, missing_tables: list[str] | list[models.IModel]) -> None:
         for table_name in missing_tables:
@@ -100,7 +114,7 @@ class DatabaseHandler(IDataSource):
                     continue
         models.IModel.run_loading = False
 
-    def Save(self, obj: models.IModel):
+    def Save(self, obj: models.IModel | GroupContacts):
         Session = orm.sessionmaker(bind=self.dbEngineInstance)
         with Session() as session:
             session.add(obj)

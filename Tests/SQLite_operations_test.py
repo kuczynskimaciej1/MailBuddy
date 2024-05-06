@@ -1,12 +1,8 @@
 import pytest
-from time import sleep
 import os
-import sqlite3 # TODO to be changed into SQLAlchemy
 from models import Contact
 from dataGenerators import genContact
-# from DataSources.sqliteOperations import sqlite
 from DataSources.dataSources import DatabaseHandler
-from sqlalchemy.orm import sessionmaker
 
 
 localDbName = "localSQLite.sqlite3"
@@ -19,25 +15,29 @@ def getDatabaseHandler(request) -> DatabaseHandler:
 @pytest.fixture
 def dropDatabase() -> bool:
     if os.path.exists(localDbName):
-        attempt = 0
-        while(attempt < 5):
-            try:
-                os.remove(path=localDbName)
-                return True
-            except PermissionError:
-                sleep(1)  #TODO Na pewno da się lepiej!
-                attempt += 1
+        try:
+            os.remove(path=localDbName)
+            return True
+        except Exception as e:
+            print(e)
+            raise e
     return False
 
 @pytest.fixture
 def createDatabase(request) -> bool:
-    dbh = DatabaseHandler(dbURL, (request.param["table_classes"]))
-    dbh.instantiateClasses(request.param["table_classes"])
-    return True
+    try:
+        dbh = DatabaseHandler(dbURL, request.param["table_classes"])
+        dbh.instantiateClasses(request.param["table_classes"])
+        return True
+    except Exception as e:
+        print(f"Error creating database: {e}")
+        return False
     
 @pytest.fixture
 def recreateDatabase(dropDatabase, createDatabase)-> bool:
-    return dropDatabase and createDatabase
+    if dropDatabase and createDatabase:
+        return True
+    raise OSError("Recreating db failed")
 
 @pytest.mark.parametrize(
     "createDatabase",
@@ -47,17 +47,9 @@ def recreateDatabase(dropDatabase, createDatabase)-> bool:
 def test_contact_sqlite_insertable(recreateDatabase, genContact, getDatabaseHandler):
     c = genContact()
     dbh = getDatabaseHandler
-    engine = dbh.dbEngineInstance
+    dbh.Save(c)
     
-    Session = sessionmaker(bind=engine)
-    with Session() as session:
-        session.add(c)
-        session.commit()
-        session.refresh(c)
-    
-    
-    with Session() as session:
-        selectionResult = session.query(Contact).filter_by(email=c.email).all()
+    selectionResult = dbh.GetData(Contact, email=c.email)
     
     print(selectionResult)
     assert len(selectionResult) == 1, f"output: {selectionResult}, got {len(selectionResult)}"

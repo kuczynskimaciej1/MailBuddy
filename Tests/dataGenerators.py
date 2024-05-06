@@ -16,7 +16,9 @@ def getGmailOAuth2Secret() -> str:
 def genContact() -> Callable[[], Contact]:
     def _generator() -> Contact:
         fake = Faker()
-        return Contact(fake.first_name(), fake.last_name(), fake.simple_profile()["mail"])
+        return Contact(_first_name=fake.first_name(), 
+                       _last_name=fake.last_name(), 
+                       _email=fake.simple_profile()["mail"])
     return _generator
 
 @pytest.fixture
