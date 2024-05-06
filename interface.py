@@ -28,13 +28,13 @@ class Settings:
             self.root,
             text="MailBuddy",
             bg="lightblue",
-            font=(
-                "Helvetica",
-                24))
+            font=("Helvetica", 24))
         label.pack(pady=20)
 
-        self.email_entry = Entry(self.root, bg="white", fg="black")
-        self.email_entry.pack(pady=5)
+        example_emails = ["example1@example.com", "example2@example.com", "example3@example.com"]
+
+        self.email_combobox = Combobox(self.root, values=example_emails)
+        self.email_combobox.pack(pady=5)
 
         connect_button = Button(
             self.root,
@@ -46,7 +46,7 @@ class Settings:
 
         change_email_button = Button(
             self.root,
-            text="Zmień adres mailowy",
+            text="Dodaj nowy adres mailowy",
             bg="lightblue",
             fg="black",
             command=self.change_email)
@@ -61,20 +61,18 @@ class Settings:
         close_button.pack(pady=5)
 
     def connect(self):
-        email = self.email_entry.get()
-        # TODO: implementacja połączenie z mailem
-        messagebox.showinfo("Połączenie", f"Połączono z  {email}")
+        email = self.email_combobox.get()
+        # TODO: połączenie z pocztą
+        messagebox.showinfo("Połączenie", f"Połączono z {email}")
 
     def change_email(self):
         new_email = simpledialog.askstring(
-            "Zmień adres e mail ", "Dodaj nowy adres e mail ")
+            "Zmień adres e-mail", "Dodaj nowy adres e-mail")
         if new_email:
-            self.email_entry.delete(0, END)
-            self.email_entry.insert(0, new_email)
+            self.email_combobox.set(new_email)
 
     def close(self):
         self.root.destroy()
-
 
 class AppUI():
     def __init__(self) -> None:
