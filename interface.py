@@ -352,11 +352,9 @@ class TemplateEditor(Toplevel):
         name_label = Label(self, text="Nazwa szablonu:", bg="lightblue")
         name_entry = Entry(self, bg="white", fg="black")
         
-        # ids = StringVar(value="")
-        self.template_text = HTMLText(self, bg="lightblue", fg="black", wrap=WORD) # , textvariable=ids
+        self.template_text = HTMLText(self, bg="lightblue", fg="black", wrap=WORD)
         self.template_text.bind("<KeyRelease>", self.__on_html_key_clicked)
         self.template_text.bind("<<TextModified>>", self.__on_text_changed)
-        # ids.trace_add("w", self.__on_text_changed)
         
         self.template_preview = HTMLLabel(self, bg="lightblue", fg="black", wrap=WORD)
         btn_save = Button(self, text="Zapisz", bg="lightblue", fg="black", command=lambda: self.__save_template_clicked(
@@ -389,7 +387,15 @@ class TemplateEditor(Toplevel):
             self.template_text.event_generate("<<TextModified>>")
 
     def __on_text_changed(self, event):
-        self.template_preview.set_html(self.template_text.get("1.0", END))
+        html_text = self.template_text.get("1.0", END)
+        mb_tag = "MailBuddyGap>"
+        replacement_text = '<span style="color:red;">'
+        
+        # Only preview change, original text remains intact - contains mb_tag
+        html_text = html_text.replace("<" + mb_tag, replacement_text)
+        html_text = html_text.replace("</" + mb_tag, "</span>")
+        
+        self.template_preview.set_html(html_text)
 
     def __save_template_clicked(
             self, template_name: str, template_content: str) -> None:
@@ -405,16 +411,18 @@ class TemplateEditor(Toplevel):
 
     def __template_window_insert_placeholder(
             self, placeholders: list[GapFillSource] = GapFillSource.all_instances) -> None:
-        placeholder_text = "_____"
+        placeholder_text = "<MailBuddyGap> </MailBuddyGap>"
         combo_values = [key for placeholder in placeholders for key in placeholder.possible_values]
-
+        
         def on_placeholder_selection(event):
+            # TODO: Debug - usuwa tylko zaznaczony tekst, może niechcąco usunąć inny fragment
             selected_placeholder = self.current_combo.get()
             if selected_placeholder:
                 selected_text = self.template_text.tag_ranges(SEL)
                 if selected_text:
                     self.template_text.delete(selected_text[0], selected_text[1])
-                self.template_text.insert(INSERT, selected_placeholder)
+                self.template_text.insert(INSERT, placeholder_text.replace(" ", selected_placeholder))
+                self.template_text.event_generate("<<TextModified>>")
 
         def show_placeholder_menu(event):
             self.hide_combobox()
