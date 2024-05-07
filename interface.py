@@ -57,7 +57,7 @@ class Settings:
 
         close_button = Button(
             self.root,
-            text="Wyłącz aplikację",
+            text="Wyłącz ustawienia",
             bg="lightblue",
             fg="black",
             command=self.close)
@@ -80,7 +80,7 @@ class Settings:
 class AppUI():
     def __init__(self) -> None:
         self.root = Tk()
-        self.grupy: list[Group] = []  #TODO pokazywanie w listbox
+        self.grupy: list[Group] = []  
         self.szablony: list[Template] = []
         self.template_window: TemplateEditor = None
 
@@ -208,8 +208,10 @@ class AppUI():
         add_menu.add_command(label="Group", command=self.__add_group_clicked)
         edit_menu.add_cascade(label="Add...", menu=add_menu)
         menubar.add_cascade(label="Edit", menu=edit_menu)
+        menubar.add_command(label="Open Settings", command=self.logout)
 
         self.root.config(menu=menubar)
+    
 
     def __create_navigation(self):
         navigation_frame = Frame(self.root, bg="lightblue")
@@ -324,11 +326,7 @@ class AppUI():
         self.template_window.prepareInterface()
 
     def logout(self):
-        # TODO to jest do zmiany, okno powinno zostać przemianowane na ustawienia, gdzie
-        # logujemy się do providerów poczty, sam program nie ma blokady
-        # względem użytkownika
-
-        self.root.destroy()  # Zamknij główne okno aplikacji
+       
         root = Tk()  # Otwórz ponownie okno logowania
         settings = Settings(root)
         settings.prepareInterface()
@@ -347,7 +345,7 @@ class TemplateEditor(Toplevel):
         self.title("Stwórz szablon")
 
         name_label = Label(self, text="Nazwa szablonu:", bg="lightblue")
-        name_label.grid(row=0, column=0, padx=5, pady=5)
+        name_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
 
         name_entry = Entry(self, bg="white", fg="black")
         name_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
@@ -358,20 +356,24 @@ class TemplateEditor(Toplevel):
 
         template_text = Text(self, bg="lightblue", fg="black", wrap=WORD)
         template_text.grid(row=1, column=0, columnspan=2,
-                           padx=5, pady=5, sticky="nsew")
+                        padx=5, pady=5, sticky="nsew")
         if self.currentTemplate:
             template_text.insert(
                 INSERT,
                 self.currentTemplate.content if self.currentTemplate.content is not None else "")
 
-        btn_save = Button(self, text="Zapisz", bg="lightblue", fg="black", command=lambda: self.__save_template_clicked(
-            name_entry.get(), template_text.get(1.0, END)))
-        btn_save.grid(row=2, column=0, padx=5, pady=5, sticky="e")
-
         btn_insert_placeholder = Button(self, text="Wstaw luke", bg="lightblue", fg="black",
                                         command=lambda: self.__template_window_insert_placeholder(template_text))
         btn_insert_placeholder.grid(
-            row=2, column=1, padx=5, pady=5, sticky="w")
+            row=2, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+
+        btn_save = Button(self, text="Zapisz", bg="lightblue", fg="black", command=lambda: self.__save_template_clicked(
+            name_entry.get(), template_text.get(1.0, END)))
+        btn_save.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(1, weight=1)
 
     def __save_template_clicked(
             self, template_name: str, template_content: str) -> None:
@@ -408,7 +410,7 @@ class TemplateEditor(Toplevel):
             # Dodanie przycisku "x" do zamknięcia comboboxa
             close_button = Button(
                 self.current_combo, text="X", command=hide_combobox, bg="white")
-            close_button.place(relx=0, rely=0, anchor="nw")
+            close_button.place(relx=0.90, rely=0, anchor="ne")
 
         template_text.insert(INSERT, placeholder_text)
         template_text.tag_configure("placeholder", background="lightgreen")
@@ -444,13 +446,15 @@ class GroupEditor(Toplevel):
         btn_add_list_contact = Button(self, text="Dodaj z listy", bg="lightblue", fg="black", command=self.add_contact_from_list_window)
         btn_save = Button(self, text="Zapisz", bg="lightblue", fg="black", command=self.__save_group_clicked)
         
-        name_label.grid(row=0, column=0, padx=5, pady=5)
+        name_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
         self.name_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
-        email_label.grid(row=1, column=0, padx=5, pady=5)
+        email_label.grid(row=1, column=0, padx=5, pady=5, sticky="w")
         self.email_text.grid(row=1, column=1, padx=5, pady=5, sticky="nsew")
         btn_add_list_contact.grid(row=2, column=0, padx=5, pady=5, sticky="ew")
-        # btn_add_manual_contact.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
         btn_save.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(1, weight=1)
         
         self.update()
         
