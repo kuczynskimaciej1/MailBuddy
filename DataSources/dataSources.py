@@ -168,9 +168,9 @@ class GapFillSource():
             raise AttributeError(f"Got {type(source)}, which is not IDataSource or IModel implementation")
         self.possible_values: dict[str, str] = None
         GapFillSource.all_instances.append(self)
+        self.get_possible_values()
         
     def get_possible_values(self):
-        # TODO: Powinien być jakiś globalny call do UI, ta klasa nie powinna o nim nic wiedzieć
         if hasattr(self, "iData"):
             idata_type = type(self.iData)
             match(idata_type):

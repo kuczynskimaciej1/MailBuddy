@@ -6,7 +6,7 @@ from group_controller import GroupController
 from models import IModel, Template, Attachment, Contact, Message, Group
 from Triggers.triggers import ITrigger
 from interface import AppUI
-from DataSources.dataSources import DatabaseHandler, IDataSource
+from DataSources.dataSources import DatabaseHandler, GapFillSource, IDataSource
 from additionalTableSetup import GroupContacts, MessageAttachment, SendAttempt
 
 dbname = "localSQLite.sqlite3"
@@ -44,6 +44,8 @@ if __name__ == "__main__":
         print("Database intact, proceeding")
     db.LoadSavedState()
     populateInterface(ui)
+    
+    _contact_fields = GapFillSource()
     
     # TODO win32 powidomienia
     # if 'win32' in platform:
