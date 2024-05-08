@@ -3,7 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from types import TracebackType
 from traceback import print_tb
 from typing import Literal, Any, NoReturn
-from tkinter import Menu, simpledialog, ttk, Listbox, Tk, Text, Button, Frame, Label, Entry, Scrollbar, Toplevel, Misc, messagebox, Menubutton, Canvas,Checkbutton, VERTICAL, RAISED
+from tkinter import Menu, simpledialog, ttk, Listbox, Tk, Text, Button, Frame, Label, Entry, Scrollbar, Toplevel, Misc, messagebox, Menubutton, Canvas,Checkbutton,BooleanVar, VERTICAL, RAISED
 from tkinter.ttk import Combobox
 from tkinter.constants import NORMAL, DISABLED, BOTH, RIDGE, END, LEFT, RIGHT, TOP, X, Y, INSERT, SEL, WORD
 from group_controller import GroupController
@@ -549,13 +549,18 @@ class ContactList(Toplevel):
                 self.create_contact_widget(c, idx, added_to_group, addBtn=shouldAddButton)
            
     def create_contact_widget(self, c: Contact, idx: int, added_to_group: bool = False, addBtn: bool = True):
+        def toggle_checkbox():
+            if checkbox_var.get():
+                self.add_contact_to_group(c)
+            else:
+                self.remove_contact_from_group(c)
+
+        checkbox_var = BooleanVar(value=added_to_group)
+        checkbox = Checkbutton(self.contact_inner_frame, variable=checkbox_var, command=toggle_checkbox) #bg="lightblue")
+        checkbox.grid(row=idx, column=2, padx=4, pady=4)
+
         Label(self.contact_inner_frame, text=f"Mail {idx+1}:").grid(row=idx, column=0, padx=5, pady=5)
         Label(self.contact_inner_frame, text=f"{c.email} - {c.first_name} {c.last_name}").grid(row=idx, column=1, padx=5, pady=5)
-        checkbox_state = "selected" if added_to_group else "disabled"
-        checkbox = Checkbutton(self.contact_inner_frame, state=checkbox_state)
-        checkbox.grid(row=idx, column=2, padx=5, pady=5)
-        if addBtn:
-            Button(self.contact_inner_frame, text="Dodaj kontakt", bg="lightblue", fg="black", command=lambda: self.add_contact_to_group(c)).grid(row=idx, column=3, padx=5, pady=5)
 
     def add_contact_to_group(self, c: Contact):
         if self.group == None:
@@ -568,6 +573,10 @@ class ContactList(Toplevel):
         except IntegrityError:
             pass
                 
+    def remove_contact_from_group(self, c: Contact):
+        # TODO usuwanie kontaktu z okienka grup odznaczajac chekboxa 
+        pass
+                
     def search_contact(self):
         search_criteria = self.search_entry.get().strip()
         self.clearEntries()
@@ -577,9 +586,8 @@ class ContactList(Toplevel):
                 self.create_contact_widget(c, idx)
  
     def add_manual_contact_window(self):
-        acw = AddContactWindow(self)
-        acw.prepareInterface()
-        
+       acw = AddContactWindow(self)
+       acw.prepareInterface()
 
 class AddContactWindow(Toplevel):
     def __init__(self, parent: Toplevel | ContactList) -> None:
