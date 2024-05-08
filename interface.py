@@ -3,7 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from types import TracebackType
 from traceback import print_tb
 from typing import Literal, Any, NoReturn
-from tkinter import Menu, simpledialog, ttk, Listbox, Tk, Text, Button, Frame, Label, Entry, Scrollbar, Toplevel, Misc, messagebox, Menubutton, Canvas, VERTICAL, RAISED
+from tkinter import Menu, simpledialog, ttk, Listbox, Tk, Text, Button, Frame, Label, Entry, Scrollbar, Toplevel, Misc, messagebox, Menubutton, Canvas,Checkbutton, VERTICAL, RAISED
 from tkinter.ttk import Combobox
 from tkinter.constants import NORMAL, DISABLED, BOTH, RIDGE, END, LEFT, RIGHT, TOP, X, Y, INSERT, SEL, WORD
 from group_controller import GroupController
@@ -525,7 +525,6 @@ class ContactList(Toplevel):
         self.contact_canvas.pack(side=LEFT, fill=BOTH, expand=True)
         self.contact_canvas.create_window((0, 0), window=self.contact_inner_frame, anchor='nw')
         
-        # TODO Scroll - chyba popsułem ale idk, mało istotne teraz
         self.contact_canvas.configure(scrollregion=self.contact_canvas.bbox("all"))
         self.update()
         
@@ -538,38 +537,41 @@ class ContactList(Toplevel):
         self.populateWindow()
         
     def populateWindow(self):
-        # TODO: Sortowanie powinno być od elementów w grupie, a później wszystkie pozostałe z bazy
         shouldAddButton = self.parent != None and isinstance(self.parent, GroupEditor)
         for idx, c in enumerate(Contact.all_instances):
             self.create_contact_widget(c, idx, addBtn=shouldAddButton)
         
-        # if self.group:
-        #     for idx, c in enumerate(GroupController.get_contacts(self.group)):
-        #         # TODO: Oznaczanie checkboxami który kontakt jest już dodany do grupy
-        #         continue
+        if self.group:
+            group_contacts = GroupController.get_contacts(self.group)
+            group_emails = {contact.email for contact in group_contacts}
+            for idx, c in enumerate(Contact.all_instances):
+                added_to_group = c.email in group_emails
+                self.create_contact_widget(c, idx, added_to_group, addBtn=shouldAddButton)
            
-    def create_contact_widget(self, c: Contact, idx: int, addBtn: bool):
+    def create_contact_widget(self, c: Contact, idx: int, added_to_group: bool = False, addBtn: bool = True):
         Label(self.contact_inner_frame, text=f"Mail {idx+1}:").grid(row=idx, column=0, padx=5, pady=5)
         Label(self.contact_inner_frame, text=f"{c.email} - {c.first_name} {c.last_name}").grid(row=idx, column=1, padx=5, pady=5)
+        checkbox_state = "selected" if added_to_group else "disabled"
+        checkbox = Checkbutton(self.contact_inner_frame, state=checkbox_state)
+        checkbox.grid(row=idx, column=2, padx=5, pady=5)
         if addBtn:
-            Button(self.contact_inner_frame, text="Dodaj kontakt", bg="lightblue", fg="black", command=lambda: self.add_contact_to_group(c)).grid(row=idx, column=2, padx=5, pady=5)
+            Button(self.contact_inner_frame, text="Dodaj kontakt", bg="lightblue", fg="black", command=lambda: self.add_contact_to_group(c)).grid(row=idx, column=3, padx=5, pady=5)
 
     def add_contact_to_group(self, c: Contact):
         if self.group == None:
-            return # No corresponding GroupEditor - no need to update, button which triggers it shouldnt exist
+            return
         
         try:    
             GroupController.add_contact(self.group, c)
             if isinstance(self.parent, GroupEditor):
                 self.parent.update()
         except IntegrityError:
-            pass # Kiedy już istnieje taki wpis
+            pass
                 
     def search_contact(self):
         search_criteria = self.search_entry.get().strip()
         self.clearEntries()
         
-        # TODO: Tutaj trzeba przemyśleć kiedy pojawiają się wszystkie kontakty, kiedy tylko te grupy, dodać wyszarzanie itd
         for idx, c in enumerate(Contact.all_instances):
             if search_criteria in c.first_name or search_criteria in c.last_name or search_criteria in c.email:
                 self.create_contact_widget(c, idx)
@@ -577,7 +579,6 @@ class ContactList(Toplevel):
     def add_manual_contact_window(self):
         acw = AddContactWindow(self)
         acw.prepareInterface()
-        # TODO: Odebrać sygnał od acw, create_contact_widget, powiadomić parent
         
 
 class AddContactWindow(Toplevel):
