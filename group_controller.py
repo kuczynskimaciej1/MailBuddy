@@ -13,8 +13,13 @@ class GroupController:
         if g._add_contact(c):
             gc = GroupContacts(group_id=g.id, contact_id=c.email)
             cls.dbh.Save(gc)
-            
-    # TODO delete contact binding?
+        
+    @classmethod
+    def delete_connection(cls, g: Group, c: Contact) -> None:
+        connections :list[GroupContacts] = cls.dbh.GetData(GroupContacts, group_id=g.id, contact_id=c.email)
+        for con in connections:
+            cls.dbh.DeleteEntry(con)
+            del con
     
     @classmethod
     def get_contacts(cls, g: Group) -> list[Contact]:

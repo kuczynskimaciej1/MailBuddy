@@ -481,8 +481,10 @@ class GroupEditor(Toplevel):
     def update(self):
         if self.currentGroup:
             self.title(f"Edytuj grupę {self.currentGroup.name}")
-            self.name_entry.insert(INSERT, self.currentGroup.name)
+            self.name_entry.delete(0, END)
+            self.name_entry.insert(0, self.currentGroup.name)
             self.currentGroup.contacts = GroupController.get_contacts(self.currentGroup)
+            self.email_text.delete('1.0', END)  # Clear current content
             [self.add_contact(c) for c in self.currentGroup.contacts]
         else:
             self.title("Dodaj grupę")
@@ -594,8 +596,9 @@ class ContactList(Toplevel):
             pass
                 
     def remove_contact_from_group(self, c: Contact):
-        # TODO usuwanie kontaktu z okienka grup odznaczajac chekboxa 
-        pass
+        GroupController.delete_connection(self.group, c)
+        if isinstance(self.parent, GroupEditor):
+            self.parent.update()
                 
     def search_contact(self):
         search_criteria = self.search_entry.get().strip()

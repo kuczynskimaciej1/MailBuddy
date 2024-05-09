@@ -124,6 +124,12 @@ class DatabaseHandler(IDataSource):
             session.refresh(obj)
         self.dbEngineInstance.dispose()
 
+    def DeleteEntry(self, obj: IModel | GroupContacts):
+        Session = orm.sessionmaker(bind=self.dbEngineInstance)
+        with Session() as session:
+            session.delete(obj)
+            session.commit()
+
 class XLSXHandler(IDataSource):
     def __init__(self, path: str) -> None:
         self.file_path = path
