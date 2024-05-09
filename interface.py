@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from types import TracebackType
 from traceback import print_tb
 from typing import Literal, Any, NoReturn
-from tkinter import Event, Menu, simpledialog, ttk, Listbox, Tk, Text, Button, Frame, Label, Entry, Scrollbar, Toplevel, Misc, messagebox, Menubutton, Canvas, VERTICAL, RAISED
+from tkinter import Event, Menu, simpledialog, ttk, Listbox, Tk, Text, Button, Frame, Label, Entry, Scrollbar, Toplevel, Misc, messagebox, Menubutton, Canvas,Checkbutton,BooleanVar, VERTICAL, RAISED
 from tkinter.ttk import Combobox
 from tkinter.constants import NORMAL, DISABLED, BOTH, RIDGE, END, LEFT, RIGHT, TOP, X, Y, INSERT, SEL, WORD
 from group_controller import GroupController
@@ -56,7 +56,7 @@ class Settings:
         
         close_button = Button(
             self.root,
-            text="Wyłącz aplikację",
+            text="Wyłącz ustawienia",
             bg="lightblue",
             fg="black",
             command=self.close)
@@ -84,7 +84,7 @@ class Settings:
 class AppUI():
     def __init__(self) -> None:
         self.root = Tk()
-        self.grupy: list[Group] = []  #TODO pokazywanie w listbox
+        self.grupy: list[Group] = []  
         self.szablony: list[Template] = []
         self.template_window: TemplateEditor = None
 
@@ -212,8 +212,10 @@ class AppUI():
         add_menu.add_command(label="Group", command=self.__add_group_clicked)
         edit_menu.add_cascade(label="Add...", menu=add_menu)
         menubar.add_cascade(label="Edit", menu=edit_menu)
+        menubar.add_command(label="Open Settings", command=self.logout)
 
         self.root.config(menu=menubar)
+    
 
     def __create_navigation(self):
         navigation_frame = Frame(self.root, bg="lightblue")
@@ -328,11 +330,7 @@ class AppUI():
         self.template_window.prepareInterface()
 
     def logout(self):
-        # TODO to jest do zmiany, okno powinno zostać przemianowane na ustawienia, gdzie
-        # logujemy się do providerów poczty, sam program nie ma blokady
-        # względem użytkownika
-
-        self.root.destroy()  # Zamknij główne okno aplikacji
+       
         root = Tk()  # Otwórz ponownie okno logowania
         settings = Settings(root)
         settings.prepareInterface()
@@ -436,7 +434,7 @@ class TemplateEditor(Toplevel):
             
             close_button = Button(
                 self.current_combo, text="X", command=self.hide_combobox, bg="white")
-            close_button.place(relx=0, rely=0, anchor="nw")
+            close_button.place(relx=0.90, rely=0, anchor="ne")
 
         self.template_text.insert(INSERT, placeholder_text)
         self.template_text.tag_configure("placeholder", background="lightgreen")
@@ -468,13 +466,15 @@ class GroupEditor(Toplevel):
         btn_add_list_contact = Button(self, text="Dodaj z listy", bg="lightblue", fg="black", command=self.add_contact_from_list_window)
         btn_save = Button(self, text="Zapisz", bg="lightblue", fg="black", command=self.__save_group_clicked)
         
-        name_label.grid(row=0, column=0, padx=5, pady=5)
+        name_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
         self.name_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
-        email_label.grid(row=1, column=0, padx=5, pady=5)
+        email_label.grid(row=1, column=0, padx=5, pady=5, sticky="w")
         self.email_text.grid(row=1, column=1, padx=5, pady=5, sticky="nsew")
         btn_add_list_contact.grid(row=2, column=0, padx=5, pady=5, sticky="ew")
-        # btn_add_manual_contact.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
         btn_save.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(1, weight=1)
         
         self.update()
         
@@ -545,7 +545,6 @@ class ContactList(Toplevel):
         self.contact_canvas.pack(side=LEFT, fill=BOTH, expand=True)
         self.contact_canvas.create_window((0, 0), window=self.contact_inner_frame, anchor='nw')
         
-        # TODO Scroll - chyba popsułem ale idk, mało istotne teraz
         self.contact_canvas.configure(scrollregion=self.contact_canvas.bbox("all"))
         self.update()
         
@@ -558,46 +557,57 @@ class ContactList(Toplevel):
         self.populateWindow()
         
     def populateWindow(self):
-        # TODO: Sortowanie powinno być od elementów w grupie, a później wszystkie pozostałe z bazy
         shouldAddButton = self.parent != None and isinstance(self.parent, GroupEditor)
         for idx, c in enumerate(Contact.all_instances):
             self.create_contact_widget(c, idx, addBtn=shouldAddButton)
         
-        # if self.group:
-        #     for idx, c in enumerate(GroupController.get_contacts(self.group)):
-        #         # TODO: Oznaczanie checkboxami który kontakt jest już dodany do grupy
-        #         continue
+        if self.group:
+            group_contacts = GroupController.get_contacts(self.group)
+            group_emails = {contact.email for contact in group_contacts}
+            for idx, c in enumerate(Contact.all_instances):
+                added_to_group = c.email in group_emails
+                self.create_contact_widget(c, idx, added_to_group, addBtn=shouldAddButton)
            
-    def create_contact_widget(self, c: Contact, idx: int, addBtn: bool):
+    def create_contact_widget(self, c: Contact, idx: int, added_to_group: bool = False, addBtn: bool = True):
+        def toggle_checkbox():
+            if checkbox_var.get():
+                self.add_contact_to_group(c)
+            else:
+                self.remove_contact_from_group(c)
+
+        checkbox_var = BooleanVar(value=added_to_group)
+        checkbox = Checkbutton(self.contact_inner_frame, variable=checkbox_var, command=toggle_checkbox) #bg="lightblue")
+        checkbox.grid(row=idx, column=2, padx=4, pady=4)
+
         Label(self.contact_inner_frame, text=f"Mail {idx+1}:").grid(row=idx, column=0, padx=5, pady=5)
         Label(self.contact_inner_frame, text=f"{c.email} - {c.first_name} {c.last_name}").grid(row=idx, column=1, padx=5, pady=5)
-        if addBtn:
-            Button(self.contact_inner_frame, text="Dodaj kontakt", bg="lightblue", fg="black", command=lambda: self.add_contact_to_group(c)).grid(row=idx, column=2, padx=5, pady=5)
 
     def add_contact_to_group(self, c: Contact):
         if self.group == None:
-            return # No corresponding GroupEditor - no need to update, button which triggers it shouldnt exist
+            return
         
         try:    
             GroupController.add_contact(self.group, c)
             if isinstance(self.parent, GroupEditor):
                 self.parent.update()
         except IntegrityError:
-            pass # Kiedy już istnieje taki wpis
+            pass
+                
+    def remove_contact_from_group(self, c: Contact):
+        # TODO usuwanie kontaktu z okienka grup odznaczajac chekboxa 
+        pass
                 
     def search_contact(self):
         search_criteria = self.search_entry.get().strip()
         self.clearEntries()
         
-        # TODO: Tutaj trzeba przemyśleć kiedy pojawiają się wszystkie kontakty, kiedy tylko te grupy, dodać wyszarzanie itd
         for idx, c in enumerate(Contact.all_instances):
             if search_criteria in c.first_name or search_criteria in c.last_name or search_criteria in c.email:
                 self.create_contact_widget(c, idx)
  
     def add_manual_contact_window(self):
-        acw = AddContactWindow(self)
-        acw.prepareInterface()
-        # TODO: Odebrać sygnał od acw, create_contact_widget, powiadomić parent
+       acw = AddContactWindow(self)
+       acw.prepareInterface()
 
 class AddContactWindow(Toplevel):
     def __init__(self, parent: Toplevel | ContactList) -> None:
