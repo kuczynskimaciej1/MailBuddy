@@ -164,3 +164,4 @@ cython_debug/
 *.sqlite3
 # Used for testing purposes
 personalSecrets.py 
+Tests/ethereal_mock.py

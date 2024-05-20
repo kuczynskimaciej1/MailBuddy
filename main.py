@@ -9,6 +9,8 @@ from interface import AppUI
 from DataSources.dataSources import DatabaseHandler, GapFillSource, IDataSource
 from additionalTableSetup import GroupContacts, MessageAttachment, SendAttempt
 
+global mocking_enabled
+mocking_enabled = True
 dbname = "localSQLite.sqlite3"
 dbURL = f"sqlite:///{dbname}"
 tables = [Template, Attachment, Contact, ITrigger, Message, Group, MessageAttachment, SendAttempt, GroupContacts]
@@ -47,9 +49,13 @@ if __name__ == "__main__":
     
     _contact_fields = GapFillSource()
     
-    # TODO win32 powidomienia
-    # if 'win32' in platform:
-    #     enableWin32Integration()
-
+    if (mocking_enabled):
+        from Tests.ethereal_mock import *
+        mock_user = User(email=mock_login, 
+                         first_name=mock_name, 
+                         last_name=mock_lastname, 
+                         password=mock_pwd)
+        sender = SMTPSender(mock_user)
+    
     ui.add_periodic_task(5000, pushQueuedInstances)
     ui.run()

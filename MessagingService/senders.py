@@ -1,5 +1,7 @@
 from abc import ABCMeta, abstractmethod
+from collections.abc import Iterable
 from smtplib import *
+from models import User, Contact, Template
 
 class ISender(metaclass=ABCMeta):
     @abstractmethod
@@ -15,14 +17,20 @@ class ISender(metaclass=ABCMeta):
 
     
 class SMTPSender(ISender):
-    def Send() -> None:
-        smtp_host = "" #hostname
-        smtp_port = 123
-        server = SMTP_SSL(smtp_host, smtp_port)
-        server.connect(smtp_host, smtp_port)
-        server.ehlo()
-        server.login()
+    def __init__(self, user: User, hostname: str, port: int) -> None:
+        self.hostname: str = hostname
+        self.port: int = port
+        self.user: User = user
+
+    def QueueMails(self, template: Template, contacts: Iterable[Contact]):
+        self.contacts = contacts
+        self.template = template
         
-# class MockSMTPSender(ISender):
-#     def __init__(self) -> None:
-        
+    def EstablishConnection(self):
+        self.server = SMTP_SSL(self.hostname, self.port)
+        self.server.ehlo()
+        self.server.login()
+    
+    def Send(self) -> None:
+        self.EstablishConnection()
+        self.server.send_message(self.template.ToMessage(), self.user.contact.email, self.contacts)

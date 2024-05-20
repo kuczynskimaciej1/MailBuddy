@@ -8,7 +8,7 @@ from tkinter import Event, Menu, simpledialog, ttk, Listbox, Tk, Text, Button, F
 from tkinter.ttk import Combobox
 from tkinter.constants import NORMAL, DISABLED, BOTH, RIDGE, END, LEFT, RIGHT, TOP, X, Y, INSERT, SEL, WORD
 from group_controller import GroupController
-from models import Contact, IModel, Template, Group
+from models import Contact, IModel, Template, Group, User
 from tkhtmlview import HTMLLabel, HTMLText
 from DataSources.dataSources import GapFillSource
 
@@ -142,8 +142,8 @@ class AppUI():
         group_editor.prepareInterface()
 
     def __send_clicked(event) -> None:
-        print("send mail")
-        pass
+        # TODO CurrentSender.Send()
+        print("email sent")
 
     def __importuj_clicked(self):
         pass
