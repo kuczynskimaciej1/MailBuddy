@@ -96,7 +96,7 @@ class AppUI():
 
         self.__create_menu()
         self.__create_navigation()
-        self.__create_notification_pane()
+  
         self.__create_mailing_group_pane()
         self.__create_template_pane()
         self.__create_mail_input_pane()
@@ -262,15 +262,7 @@ class AppUI():
         btn_szablony.pack(side=LEFT, padx=5, pady=5)
         btn_settings.pack(side=RIGHT, padx=5, pady=5)
 
-    def __create_notification_pane(self):
-        notifications_frame = Frame(
-            self.root, bg="lightblue", width=200, height=100, relief=RIDGE, borderwidth=2)
-        notifications_label = Label(
-            notifications_frame, text="Miejsce na powiadomienia", bg="lightblue")
-
-        notifications_frame.pack(
-            side=LEFT, padx=10, pady=10, fill=BOTH, expand=True, ipadx=5, ipady=5)
-        notifications_label.pack(fill=BOTH, expand=True)
+    
 
     def __create_mailing_group_pane(self):
         groups_frame = Frame(
