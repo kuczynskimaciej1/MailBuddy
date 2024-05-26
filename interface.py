@@ -95,8 +95,6 @@ class AppUI():
         self.root.protocol("WM_DELETE_WINDOW", self.__exit_clicked)
 
         self.__create_menu()
-        self.__create_navigation()
-        self.__create_notification_pane()
         self.__create_mailing_group_pane()
         self.__create_template_pane()
         self.__create_mail_input_pane()
@@ -213,64 +211,12 @@ class AppUI():
         edit_menu.add_cascade(label="Add...", menu=add_menu)
         menubar.add_cascade(label="Edit", menu=edit_menu)
         menubar.add_command(label="Open Settings", command=self.logout)
+        menubar.add_command(label="Send", command=lambda: self.__send_clicked())
+
 
         self.root.config(menu=menubar)
     
-
-    def __create_navigation(self):
-        navigation_frame = Frame(self.root, bg="lightblue")
-
-        btn_plik = Menubutton(
-            navigation_frame, text="Plik", bg="lightblue", fg="black", relief=RAISED, bd=2)
-        plik_menu = Menu(btn_plik, tearoff=0)
-        plik_menu.add_command(
-            label="Importuj",
-            command=self.__importuj_clicked)
-        plik_menu.add_command(
-            label="Eksportuj",
-            command=self.__eksportuj_clicked)
-        btn_plik.configure(menu=plik_menu)
-
-        btn_plik = Menubutton(
-            navigation_frame, text="Plik", bg="lightblue", fg="black", relief=RAISED, bd=2)
-        plik_menu = Menu(btn_plik, tearoff=0)
-        plik_menu.add_command(
-            label="Importuj",
-            command=self.__importuj_clicked)
-        plik_menu.add_command(
-            label="Eksportuj",
-            command=self.__eksportuj_clicked)
-        btn_plik.configure(menu=plik_menu)
-
-        btn_wyslij = Button(navigation_frame, text="Wyślij", bg="lightblue", fg="black",
-                            command=lambda: self.__send_clicked()
-                            )
-        btn_usun = Button(navigation_frame, text="Usuń", bg="lightblue", fg="black",
-                          # command=lambda: self.usun_tekst(entry_text)
-                          )
-        btn_grupy = Button(navigation_frame, text="Grupy", bg="lightblue", fg="black",
-                           command=lambda: self.__add_group_clicked())
-        btn_szablony = Button(navigation_frame, text="Templates", bg="lightblue", fg="black",
-                              command=lambda: self.__add_template_clicked())
-        btn_settings = Button(navigation_frame, text="Ustawienia", bg="lightblue", fg="black",
-                              command=self.logout)
-
-        navigation_frame.pack(side=TOP, fill=X)
-        btn_wyslij.pack(side=LEFT, padx=5, pady=5)
-        btn_usun.pack(side=LEFT, padx=5, pady=5)
-        btn_grupy.pack(side=LEFT, padx=5, pady=5)
-        btn_szablony.pack(side=LEFT, padx=5, pady=5)
-        btn_settings.pack(side=RIGHT, padx=5, pady=5)
-
-    def __create_notification_pane(self):
-        notifications_frame = Frame(
-            self.root, bg="lightblue", width=200, height=100, relief=RIDGE, borderwidth=2)
-        notifications_label = Label(
-            notifications_frame, text="Miejsce na powiadomienia", bg="lightblue")
-
-        notifications_frame.pack(
-            side=LEFT, padx=10, pady=10, fill=BOTH, expand=True, ipadx=5, ipady=5)
-        notifications_label.pack(fill=BOTH, expand=True)
+    
 
     def __create_mailing_group_pane(self):
         groups_frame = Frame(
@@ -337,49 +283,46 @@ class AppUI():
         root.mainloop()
 
 class TemplateEditor(Toplevel):
-    def __init__(self, parent: AppUI, master: Misc,
-                 obj: Template | None = None):
+    def __init__(self, parent: AppUI, master: Misc, obj: Template | None = None):
         super().__init__(master)
         self.parent = parent
         self.current_combo: Combobox = None
         self.currentTemplate = obj
 
+        self.prepareInterface()
+
     def prepareInterface(self):
         self.title("Stwórz szablon")
 
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_columnconfigure(3, weight=1)
+
         name_label = Label(self, text="Nazwa szablonu:", bg="lightblue")
         name_entry = Entry(self, bg="white", fg="black")
-        
+
         self.template_text = HTMLText(self, bg="lightblue", fg="black", wrap=WORD)
         self.template_text.bind("<KeyRelease>", self.__on_html_key_clicked)
         self.template_text.bind("<<TextModified>>", self.__on_text_changed)
-        
+
         self.template_preview = HTMLLabel(self, bg="lightblue", fg="black", wrap=WORD)
-        btn_save = Button(self, text="Zapisz", bg="lightblue", fg="black", command=lambda: self.__save_template_clicked(
-            name_entry.get(), self.template_text.get(1.0, END)))
-        btn_insert_placeholder = Button(self, text="Wstaw luke", bg="lightblue", fg="black",
+        btn_save = Button(self, text="Zapisz", bg="lightblue", fg="black",
+                          command=lambda: self.__save_template_clicked(name_entry.get(), self.template_text.get(1.0, END)))
+        btn_insert_placeholder = Button(self, text="Wstaw lukę", bg="lightblue", fg="black",
                                         command=self.__template_window_insert_placeholder)
-        
-        
+
         name_label.grid(row=0, column=0, padx=5, pady=5)
         name_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
-        self.template_text.grid(row=1, column=0, columnspan=2,
-                           padx=5, pady=5, sticky="nsew")
+        self.template_text.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky="nsew")
         self.template_preview.grid(row=1, column=3, columnspan=5, padx=5, pady=5, sticky="nsew")
-        btn_save.grid(row=2, column=0, padx=5, pady=5, sticky="e")
-        btn_insert_placeholder.grid(
-            row=2, column=1, padx=5, pady=5, sticky="w")
-        
-        if self.currentTemplate: # if anything is present in template
-            name_entry.insert(
-                INSERT,
-                self.currentTemplate.name if self.currentTemplate.name is not None else "")
-            
-            self.template_text.insert(
-                INSERT,
-                self.currentTemplate.content if self.currentTemplate.content is not None else "")
-            self.template_text.event_generate("<<TextModified>>") # Initial render
-    
+        btn_save.grid(row=2, column=2, padx=(50, 5), pady=5, sticky="e")
+        btn_insert_placeholder.grid(row=2, column=3, padx=(5, 50), pady=5, sticky="w")
+
+        if self.currentTemplate:  
+            name_entry.insert(INSERT, self.currentTemplate.name if self.currentTemplate.name is not None else "")
+            self.template_text.insert(INSERT, self.currentTemplate.content if self.currentTemplate.content is not None else "")
+            self.template_text.event_generate("<<TextModified>>")  
+
     def __on_html_key_clicked(self, event: Event):
         if event.keycode not in NonAlteringKeyCodes:
             self.template_text.event_generate("<<TextModified>>")
@@ -388,18 +331,15 @@ class TemplateEditor(Toplevel):
         html_text = self.template_text.get("1.0", END)
         mb_tag = "MailBuddyGap>"
         replacement_text = '<span style="color:red;">'
-        
-        # Only preview change, original text remains intact - contains mb_tag
+
         html_text = html_text.replace("<" + mb_tag, replacement_text)
         html_text = html_text.replace("</" + mb_tag, "</span>")
-        
+
         self.template_preview.set_html(html_text)
 
-    def __save_template_clicked(
-            self, template_name: str, template_content: str) -> None:
+    def __save_template_clicked(self, template_name: str, template_content: str) -> None:
         if template_name != "" and template_content != "":
-            self.currentTemplate = Template(
-                _name=template_name, _content=template_content)
+            self.currentTemplate = Template(_name=template_name, _content=template_content)
             self.parent.add_template(self.currentTemplate)
         self.destroy()
 
@@ -407,13 +347,11 @@ class TemplateEditor(Toplevel):
         if self.current_combo:
             self.current_combo.destroy()
 
-    def __template_window_insert_placeholder(
-            self, placeholders: list[GapFillSource] = GapFillSource.all_instances) -> None:
+    def __template_window_insert_placeholder(self, placeholders: list[GapFillSource] = GapFillSource.all_instances) -> None:
         placeholder_text = "<MailBuddyGap> </MailBuddyGap>"
         combo_values = [key for placeholder in placeholders for key in placeholder.possible_values]
-        
+
         def on_placeholder_selection(event):
-            # TODO: Debug - usuwa tylko zaznaczony tekst, może niechcąco usunąć inny fragment
             selected_placeholder = self.current_combo.get()
             if selected_placeholder:
                 selected_text = self.template_text.tag_ranges(SEL)
@@ -424,16 +362,12 @@ class TemplateEditor(Toplevel):
 
         def show_placeholder_menu(event):
             self.hide_combobox()
-            self.current_combo = Combobox(
-                self.template_text, values=combo_values)
-            #TODO: Debug populating combobox
-            self.current_combo.bind(
-                "<<ComboboxSelected>>", on_placeholder_selection)
+            self.current_combo = Combobox(self.template_text, values=combo_values)
+            self.current_combo.bind("<<ComboboxSelected>>", on_placeholder_selection)
             self.current_combo.place(x=event.x_root, y=event.y_root)
             self.current_combo.focus_set()
-            
-            close_button = Button(
-                self.current_combo, text="X", command=self.hide_combobox, bg="white")
+
+            close_button = Button(self.current_combo, text="X", command=self.hide_combobox, bg="white")
             close_button.place(relx=0.90, rely=0, anchor="ne")
 
         self.template_text.insert(INSERT, placeholder_text)
@@ -443,12 +377,10 @@ class TemplateEditor(Toplevel):
 
         start_index = "1.0"
         while True:
-            start_index = self.template_text.search(
-                placeholder_text, start_index, stopindex=END)
+            start_index = self.template_text.search(placeholder_text, start_index, stopindex=END)
             if not start_index:
                 break
-            end_index = self.template_text.index(
-                f"{start_index}+{len(placeholder_text)}c")
+            end_index = self.template_text.index(f"{start_index}+{len(placeholder_text)}c")
             self.template_text.tag_add("placeholder", start_index, end_index)
             start_index = end_index
 
