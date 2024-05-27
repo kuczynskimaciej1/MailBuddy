@@ -5,6 +5,7 @@ from tkinter.constants import END, INSERT, SEL, WORD
 from models import Template
 from tkhtmlview import HTMLLabel, HTMLText
 from DataSources.dataSources import GapFillSource
+from .ExternalSourceImportWindow import ExternalSourceImportWindow
 
 
 class TemplateEditor(Toplevel):
@@ -40,13 +41,17 @@ class TemplateEditor(Toplevel):
                           command=lambda: self.__save_template_clicked(name_entry.get(), self.template_text.get(1.0, END)))
         btn_insert_placeholder = Button(self, text="Wstaw lukę", bg="lightblue", fg="black",
                                         command=self.__template_window_insert_placeholder)
+        btn_add_external_source = Button(self, text="Dodaj zewnętrzne źródło", bg="lightblue", fg="black",
+                                         command=self.__add_external_source_clicked)
 
         name_label.grid(row=0, column=0, padx=5, pady=5)
         name_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
         self.template_text.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky="nsew")
         self.template_preview.grid(row=1, column=3, columnspan=5, padx=5, pady=5, sticky="nsew")
-        btn_save.grid(row=2, column=2, padx=(50, 5), pady=5, sticky="e")
-        btn_insert_placeholder.grid(row=2, column=3, padx=(5, 50), pady=5, sticky="w")
+        
+        btn_add_external_source.grid(row=2, column=1, padx=(5, 50), pady=5, sticky="w")
+        btn_insert_placeholder.grid(row=2, column=2, padx=(5, 50), pady=5, sticky="w")
+        btn_save.grid(row=2, column=3, padx=(50, 5), pady=5, sticky="e")
 
         if self.currentTemplate:  
             name_entry.insert(INSERT, self.currentTemplate.name if self.currentTemplate.name is not None else "")
@@ -57,6 +62,10 @@ class TemplateEditor(Toplevel):
     def update_combo_values(self, placeholders: list[GapFillSource] = GapFillSource.all_instances):
          self.combo_values = [key for placeholder in placeholders for key in placeholder.possible_values]
 
+
+    def __add_external_source_clicked(self):
+        ExternalSourceImportWindow(self, self.parent.root)
+        
 
     def __on_html_key_clicked(self, event: Event):
         if event.keycode not in NonAlteringKeyCodes:
@@ -118,7 +127,8 @@ class TemplateEditor(Toplevel):
 
 
     def __on_placeholder_selection(self, event):
-        selected_placeholder = self.combo_frame.children['!combobox'].get()
+        cb: Combobox = self.combo_frame.children['!combobox'] # type: ignore
+        selected_placeholder = cb.get()
         if selected_placeholder:
             selected_text = self.template_text.tag_ranges(SEL)
             if selected_text:

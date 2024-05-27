@@ -32,6 +32,7 @@
     <Compile Include="additionalTableSetup.py" />
     <Compile Include="DataSources\dataSources.py" />
     <Compile Include="group_controller.py" />
+    <Compile Include="Interface\ExternalSourceImportWindow.py" />
     <Compile Include="main.py" />
     <Compile Include="MessagingService\readers.py" />
     <Compile Include="MessagingService\senders.py" />
