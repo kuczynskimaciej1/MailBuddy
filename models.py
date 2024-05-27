@@ -138,9 +138,13 @@ class Contact(IModel):
 
     @staticmethod
     def isEmail(candidate: str) -> bool:
-        if re.match(r"^(?!.*@.*@.*$)[^@]+@[^@]+\.[^@]+$", candidate):
-            return True
-        return False
+        if candidate == None:
+            return False
+        
+        if re.match(r"^(?!.*@.*@.*$)[^@]+@[^@]+\.[^@]+$/g", candidate):
+            return False    
+        
+        return True
     
 # region Properties
     @hybrid_property
@@ -158,7 +162,7 @@ class Contact(IModel):
     @email.setter
     def email(self, newValue: str):
         if not Contact.isEmail(newValue):
-            raise AttributeError("Value is not an email")
+            raise AttributeError(f"{newValue} is not an email")
         self._email = newValue
 
     @first_name.setter
@@ -176,7 +180,7 @@ class User():
 
     def __init__(self, first_name: str, last_name: str,
                  email: str, password: str) -> None:
-        self.contact = Contact(first_name, last_name, email)
+        self.contact = Contact(first_name=first_name, last_name=last_name, email=email)
         self.password = password
         User.all_instances.append(self)
         IModel.queueSave(child=self)
