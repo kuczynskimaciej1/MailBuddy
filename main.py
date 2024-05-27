@@ -24,7 +24,7 @@ smtp_security = "tls"
 
 dbname = "localSQLite.sqlite3"
 dbURL = f"sqlite:///{dbname}"
-tables = [Template, Attachment, Contact, ITrigger, Message, Group, MessageAttachment, SendAttempt, GroupContacts]
+tables = [Template, Attachment, Contact, User, ITrigger, Message, Group, MessageAttachment, SendAttempt, GroupContacts]
 db: IDataSource = None
 
 
@@ -67,8 +67,9 @@ if __name__ == "__main__":
                             last_name=mock_lastname, 
                             password=mock_pwd)
             sender = SMTPSender(mock_user)
-        except AttributeError as ae:
-            print(ae)
+        except Exception as e:
+            print(e)
+        
     
     ui.add_periodic_task(5000, pushQueuedInstances)
     ui.run()

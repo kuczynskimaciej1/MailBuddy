@@ -8,13 +8,18 @@ from DataSources.dataSources import GapFillSource
 
 
 class TemplateEditor(Toplevel):
+    placeholder_text = "<MailBuddyGap> </MailBuddyGap>"
+    combo_values: list[str] = []
+
     def __init__(self, parent: Toplevel | Tk, master: Misc, obj: Template | None = None):
         super().__init__(master)
         self.parent = parent
         self.current_combo: Combobox = None
         self.currentTemplate = obj
 
+        self.update_combo_values()
         self.prepareInterface()
+
 
     def prepareInterface(self):
         self.title("Stwórz szablon")
@@ -29,6 +34,7 @@ class TemplateEditor(Toplevel):
         self.template_text = HTMLText(self, bg="lightblue", fg="black", wrap=WORD)
         self.template_text.bind("<KeyRelease>", self.__on_html_key_clicked)
         self.template_text.bind("<<TextModified>>", self.__on_text_changed)
+        self.template_text.bind("<Button-3>", self.__show_placeholder_menu)  # RMB
 
         self.template_preview = HTMLLabel(self, bg="lightblue", fg="black", wrap=WORD)
         btn_save = Button(self, text="Zapisz", bg="lightblue", fg="black",
@@ -48,23 +54,28 @@ class TemplateEditor(Toplevel):
             self.template_text.insert(INSERT, self.currentTemplate.content if self.currentTemplate.content is not None else "")
             self.template_text.event_generate("<<TextModified>>")  
 
+
+    def update_combo_values(self, placeholders: list[GapFillSource] = GapFillSource.all_instances):
+         TemplateEditor.combo_values = [key for placeholder in placeholders for key in placeholder.possible_values]
+
+
     def __on_html_key_clicked(self, event: Event):
         if event.keycode not in NonAlteringKeyCodes:
             self.template_text.event_generate("<<TextModified>>")
 
+
     def __on_text_changed(self, event):
-        def Update_preview():
+        def update_preview():
             html_text = self.template_text.get("1.0", END)
             mb_tag = "MailBuddyGap>"
             replacement_text = '<span style="color:red;">'
 
             html_text = html_text.replace("<" + mb_tag, replacement_text)
             html_text = html_text.replace("</" + mb_tag, "</span>")
+            self.template_preview.set_html(html_text)
             
-        Update_preview()
+        update_preview()
         
-
-        self.template_preview.set_html(html_text)
 
     def __save_template_clicked(self, template_name: str, template_content: str) -> None:
         if template_name != "" and template_content != "":
@@ -72,46 +83,47 @@ class TemplateEditor(Toplevel):
             self.parent.add_template(self.currentTemplate)
         self.destroy()
 
+
     def hide_combobox(self):
         if self.current_combo:
             self.current_combo.destroy()
 
-    def __template_window_insert_placeholder(self, placeholders: list[GapFillSource] = GapFillSource.all_instances) -> None:
-        placeholder_text = "<MailBuddyGap> </MailBuddyGap>"
-        combo_values = [key for placeholder in placeholders for key in placeholder.possible_values]
 
-        def on_placeholder_selection(event):
-            selected_placeholder = self.current_combo.get()
-            if selected_placeholder:
-                selected_text = self.template_text.tag_ranges(SEL)
-                if selected_text:
-                    self.template_text.delete(selected_text[0], selected_text[1])
-                self.template_text.insert(INSERT, placeholder_text.replace(" ", selected_placeholder))
-                self.template_text.event_generate("<<TextModified>>")
-
-        def show_placeholder_menu(event):
-            self.hide_combobox()
-            self.current_combo = Combobox(self.template_text, values=combo_values)
-            self.current_combo.bind("<<ComboboxSelected>>", on_placeholder_selection)
-            self.current_combo.place(x=event.x_root, y=event.y_root)
-            self.current_combo.focus_set()
-
-            close_button = Button(self.current_combo, text="X", command=self.hide_combobox, bg="white")
-            close_button.place(relx=0.90, rely=0, anchor="ne")
-
-        self.template_text.insert(INSERT, placeholder_text)
+    def __template_window_insert_placeholder(self) -> None:
+        self.template_text.insert(INSERT, TemplateEditor.placeholder_text)
         self.template_text.tag_configure("placeholder", background="lightgreen")
-
-        self.template_text.bind("<Button-3>", show_placeholder_menu)
 
         start_index = "1.0"
         while True:
-            start_index = self.template_text.search(placeholder_text, start_index, stopindex=END)
+            start_index = self.template_text.search(TemplateEditor.placeholder_text, start_index, stopindex=END)
             if not start_index:
                 break
-            end_index = self.template_text.index(f"{start_index}+{len(placeholder_text)}c")
+            end_index = self.template_text.index(f"{start_index}+{len(TemplateEditor.placeholder_text)}c")
             self.template_text.tag_add("placeholder", start_index, end_index)
             start_index = end_index
+
+
+    def __show_placeholder_menu(self, event):
+        self.hide_combobox()
+        self.current_combo = Combobox(self.template_text, values=TemplateEditor.combo_values)
+        self.current_combo.bind("<<ComboboxSelected>>", self.__on_placeholder_selection)
+        
+        self.current_combo.place(x=event.x+10, # self.winfo_pointerx(),  #event.x_root
+                                 y=event.y+10) #self.winfo_pointery())  #event.y_root
+        self.current_combo.focus_set()
+
+        close_button = Button(self.current_combo, text="X", command=self.hide_combobox, bg="white")
+        close_button.place(relx=0.90, rely=0, anchor="ne")
+
+
+    def __on_placeholder_selection(self, event):
+        selected_placeholder = self.current_combo.get()
+        if selected_placeholder:
+            selected_text = self.template_text.tag_ranges(SEL)
+            if selected_text:
+                self.template_text.delete(selected_text[0], selected_text[1])
+            self.template_text.insert(INSERT, TemplateEditor.placeholder_text.replace(" ", selected_placeholder))
+            self.template_text.event_generate("<<TextModified>>")
 
 
 class NonAlteringKeyCodes(Enum):

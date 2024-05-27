@@ -1,12 +1,8 @@
 from __future__ import annotations
 from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.application import MIMEApplication
-from sqlalchemy import Column, Integer, String, LargeBinary, TIMESTAMP, func
+from sqlalchemy import Column, ForeignKey, Integer, String, LargeBinary, TIMESTAMP, func
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.ext.hybrid import hybrid_property
-from abc import ABCMeta, abstractmethod
-from pathlib import Path
 import re
 
 
@@ -74,6 +70,7 @@ class Template(IModel):
     def content(self, value: str | None):
         self._content = value
 #endregion
+
 
 class Attachment(IModel):
     all_instances = []
@@ -175,8 +172,15 @@ class Contact(IModel):
 #endregion
 
 
-class User():
+class User(IModel):
     all_instances = []
+    __tablename__ = "Users"
+
+    _id = Column("_id", Integer, primary_key=True)
+    _email = Column("email", String(100), ForeignKey('Contacts.email'))
+    
+    contactRel = relationship(Contact, foreign_keys=[_email])
+    
 
     def __init__(self, first_name: str, last_name: str,
                  email: str, password: str) -> None:
