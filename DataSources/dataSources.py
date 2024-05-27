@@ -7,6 +7,7 @@ from additionalTableSetup import GroupContacts
 from models import IModel, Contact
 import sqlalchemy as alchem
 import sqlalchemy.orm as orm
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.hybrid import hybrid_property
 
 class SupportedDbEngines(Enum):
@@ -118,10 +119,15 @@ class DatabaseHandler(IDataSource):
 
     def Save(self, obj: IModel | GroupContacts):
         Session = orm.sessionmaker(bind=self.dbEngineInstance)
-        with Session() as session:
-            session.add(obj)
-            session.commit()
-            session.refresh(obj)
+        try:
+            with Session() as session:
+                        session.add(obj)
+                        session.commit()
+                        session.refresh(obj)
+        except IntegrityError as ie:
+            print(ie)
+        except Exception as e:
+            print(e)
         self.dbEngineInstance.dispose()
 
     def DeleteEntry(self, obj: IModel | GroupContacts):
