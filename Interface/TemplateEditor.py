@@ -53,12 +53,16 @@ class TemplateEditor(Toplevel):
             self.template_text.event_generate("<<TextModified>>")
 
     def __on_text_changed(self, event):
-        html_text = self.template_text.get("1.0", END)
-        mb_tag = "MailBuddyGap>"
-        replacement_text = '<span style="color:red;">'
+        def Update_preview():
+            html_text = self.template_text.get("1.0", END)
+            mb_tag = "MailBuddyGap>"
+            replacement_text = '<span style="color:red;">'
 
-        html_text = html_text.replace("<" + mb_tag, replacement_text)
-        html_text = html_text.replace("</" + mb_tag, "</span>")
+            html_text = html_text.replace("<" + mb_tag, replacement_text)
+            html_text = html_text.replace("</" + mb_tag, "</span>")
+            
+        Update_preview()
+        
 
         self.template_preview.set_html(html_text)
 

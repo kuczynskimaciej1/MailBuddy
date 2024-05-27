@@ -180,7 +180,7 @@ class User():
 
     def __init__(self, first_name: str, last_name: str,
                  email: str, password: str) -> None:
-        self.contact = Contact(first_name=first_name, last_name=last_name, email=email)
+        self.contact = Contact(_first_name=first_name, _last_name=last_name, _email=email)
         self.password = password
         User.all_instances.append(self)
         IModel.queueSave(child=self)
