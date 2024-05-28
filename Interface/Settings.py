@@ -11,6 +11,7 @@ from group_controller import GroupController
 from models import Contact, IModel, Template, Group
 from tkhtmlview import HTMLLabel, HTMLText
 from DataSources.dataSources import GapFillSource
+from MessagingService.accountInfo import discover_email_settings
 
 
 class Settings:
@@ -22,7 +23,7 @@ class Settings:
 
     def prepareInterface(self):
         # TODO: tutaj powinniśmy ładować wartości z User
-        example_emails = ["example1@example.com", "example2@example.com", "example3@example.com"]
+        example_emails = ["kuczynskimaciej1@poczta.onet.pl", "example1@example.com", "example2@example.com", "example3@example.com"]
         
         label = Label(
             self.root,
@@ -31,6 +32,8 @@ class Settings:
             font=("Helvetica", 24))
 
         self.email_combobox = Combobox(self.root, values=example_emails)
+
+        self.password_entry = Entry(self.root, show="*")
         
         connect_button = Button(
             self.root,
@@ -55,13 +58,17 @@ class Settings:
         
         label.pack(pady=20)
         self.email_combobox.pack(pady=5)
+        self.password_entry.pack(pady=5)
         connect_button.pack(pady=5)
         change_email_button.pack(pady=5)
         close_button.pack(pady=5)
 
     def connect(self):
         email = self.email_combobox.get()
+        password = self.password_entry.get()
+
         # TODO: połączenie z pocztą
+        email_settings = discover_email_settings(email,password)
         messagebox.showinfo("Połączenie", f"Połączono z {email}")
 
     def change_email(self):
