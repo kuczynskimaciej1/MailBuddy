@@ -9,7 +9,7 @@ class GroupEditor(Toplevel):
     def __init__(self, parent: Toplevel | Tk, edited: Group | None = None):
         super().__init__(parent.root)
         self.parent = parent
-        self.currentGroup = edited
+        self.currentGroup = Group() if edited == None else edited
 
     def prepareInterface(self):
         name_label = Label(self, text="Nazwa grupy:", bg="lightblue")

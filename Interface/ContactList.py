@@ -59,7 +59,7 @@ class ContactList(Toplevel):
         self.populateWindow()
         
     def populateWindow(self):
-        shouldAddButton = self.parent != None and isinstance(self.parent, GroupEditor)
+        shouldAddButton = self.parent != None
         for idx, c in enumerate(Contact.all_instances):
             self.create_contact_widget(c, idx, addBtn=shouldAddButton)
         
@@ -90,15 +90,13 @@ class ContactList(Toplevel):
         
         try:    
             GroupController.add_contact(self.group, c)
-            if isinstance(self.parent, GroupEditor):
-                self.parent.update()
+            self.parent.update()
         except IntegrityError:
             pass
                 
     def remove_contact_from_group(self, c: Contact):
         GroupController.delete_connection(self.group, c)
-        if isinstance(self.parent, GroupEditor):
-            self.parent.update()
+        self.parent.update()
                 
     def search_contact(self):
         search_criteria = self.search_entry.get().strip()
