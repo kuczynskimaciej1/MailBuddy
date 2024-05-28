@@ -117,13 +117,26 @@ class DatabaseHandler(IDataSource):
                     continue
         IModel.run_loading = False
 
+    def Update(self, obj: IModel):
+        Session = orm.sessionmaker(bind=self.dbEngineInstance)
+        try:
+            with Session() as session:
+                session.merge(obj)
+                session.commit()
+        except IntegrityError as ie:
+            print(ie)
+        except Exception as e:
+            print(e)
+        finally:
+            self.dbEngineInstance.dispose()
+
     def Save(self, obj: IModel | GroupContacts):
         Session = orm.sessionmaker(bind=self.dbEngineInstance)
         try:
             with Session() as session:
-                        session.add(obj)
-                        session.commit()
-                        session.refresh(obj)
+                session.add(obj)
+                session.commit()
+                session.refresh(obj)
         except IntegrityError as ie:
             print(ie)
         except Exception as e:

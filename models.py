@@ -12,12 +12,18 @@ __all__ = ["Template", "Attachment", "Contact", "User", "Message", "Group"]
 class IModel(declarative_base()):
     __abstract__ = True
     run_loading = True
-    saveQueued: list[IModel] = []
+    addQueued: list[IModel] = []
+    updateQueued: list[IModel] = []
 
     @staticmethod
     def queueSave(child):
         if not IModel.run_loading:
-            IModel.saveQueued.append(child)
+            IModel.addQueued.append(child)
+    
+    @staticmethod
+    def queueToUpdate(child):
+        if not IModel.run_loading:
+            IModel.updateQueued.append(child)
 
 
 class Template(IModel):
@@ -182,12 +188,18 @@ class User(IModel):
     contactRel = relationship(Contact, foreign_keys=[_email])
     
 
-    def __init__(self, first_name: str, last_name: str,
-                 email: str, password: str) -> None:
-        self.contact = Contact(_first_name=first_name, _last_name=last_name, _email=email)
-        self.password = password
+    def __init__(self, **kwargs) -> None:
+        self._email = kwargs.pop("_email")
+        self.password = kwargs.pop("_password", None)
+        self.contact = self.getExistingContact(kwargs.pop("_first_name", None), kwargs.pop("_last_name", None))
         User.all_instances.append(self)
         IModel.queueSave(child=self)
+        
+    def getExistingContact(self, first_name, last_name) -> Contact:
+        for c in Contact.all_instances:
+            if c.email == self._email:
+                return c
+        return Contact(_first_name=first_name, _last_name=last_name, _email=self._email)
 
 
 class Message(IModel, MIMEMultipart):
@@ -226,6 +238,15 @@ class Group(IModel):
         self.contacts: list[Contact] = kwargs.pop("_contacts", [])
         Group.all_instances.append(self)
         IModel.queueSave(self)
+        
+    @hybrid_property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value: str | None):
+        self._name = value
+        IModel.queueToUpdate(self)
     
     def __str__(self):
         return f"{self.id}: {self.name}"
@@ -262,4 +283,5 @@ class Group(IModel):
     @name.setter
     def name(self, value: str | None):
         self._name = value
+        IModel.queueToUpdate(self)
 #endregion
