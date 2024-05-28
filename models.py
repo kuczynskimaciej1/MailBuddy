@@ -182,8 +182,9 @@ class User(IModel):
     all_instances = []
     __tablename__ = "Users"
 
-    _id = Column("_id", Integer, primary_key=True)
-    _email = Column("email", String(100), ForeignKey('Contacts.email'))
+    _id = Column("_id", Integer, primary_key=True, autoincrement=True)
+    _email = Column("email", String(100), ForeignKey('Contacts.email'), unique=True)
+    
     
     contactRel = relationship(Contact, foreign_keys=[_email])
     

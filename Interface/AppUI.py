@@ -115,7 +115,9 @@ class AppUI():
         selected: int = self.grupy_listbox.curselection()
         if len(selected) > 0:
             g: Group = self.grupy[selected[0]]
-            mails = [", ".join(x.email) for x in g.contacts]
+            mails = ""
+            for c in g.contacts:
+                mails += c.email + ", "
             self.entry_adres.delete(0, END) 
             self.entry_adres.insert(INSERT, mails)
 
