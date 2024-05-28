@@ -3,7 +3,7 @@ from MessagingService.readers import *
 from UserInfo.LoginService import *
 # from sys import platform
 from group_controller import GroupController
-from models import IModel, Template, Attachment, Contact, Message, Group, User
+from models import DataImport, IModel, Template, Attachment, Contact, Message, Group, User
 from Triggers.triggers import ITrigger
 from Interface.AppUI import AppUI
 from DataSources.dataSources import DatabaseHandler, GapFillSource, IDataSource
@@ -24,7 +24,7 @@ smtp_security = "tls"
 
 dbname = "localSQLite.sqlite3"
 dbURL = f"sqlite:///{dbname}"
-tables = [Template, Attachment, Contact, User, ITrigger, Message, Group, MessageAttachment, SendAttempt, GroupContacts]
+tables = [Template, DataImport, Attachment, Contact, User, ITrigger, Message, Group, MessageAttachment, SendAttempt, GroupContacts]
 db: IDataSource = None
 
     

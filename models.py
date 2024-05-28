@@ -1,5 +1,6 @@
 from __future__ import annotations
 from email.mime.multipart import MIMEMultipart
+from openpyxl import load_workbook
 from sqlalchemy import Column, ForeignKey, Integer, String, LargeBinary, TIMESTAMP, func
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -26,18 +27,94 @@ class IModel(declarative_base()):
             IModel.updateQueued.append(child)
 
 
+class DataImport(IModel):
+    all_instances: list[DataImport] = []
+    __tablename__ = "DataImport"
+
+    _id = Column("id", Integer, primary_key=True, autoincrement=True)
+    _name = Column("name", String(100))
+    _localPath = Column("localPath", String(255), nullable=True)
+    _content = Column("content", LargeBinary, nullable=True)
+    
+    def __init__(self, **kwargs) -> None:
+        self.id = kwargs.pop('_id', None)
+        self.name = kwargs.pop('_name', None)
+        self.localPath = kwargs.pop('_localPath', None)
+        self.content = kwargs.pop('_content', None)
+        DataImport.all_instances.append(self)
+        IModel.queueSave(child=self)
+        
+    def getColumnPreview(self) -> dict | None:
+        workbook = load_workbook(self.localPath, read_only=True)
+        result = dict()
+        for sheet in workbook:
+            first_row = next(sheet.iter_rows(values_only=True))
+            if "Email" not in first_row:
+                continue
+            
+            columns = first_row
+            dataPreviewRow = next(sheet.iter_rows(values_only=True))
+            for idx, c in enumerate(columns):
+                result[c] = dataPreviewRow[idx]
+        return result if len(result) > 0 else None
+            
+
+# region Properties
+    @hybrid_property
+    def id(self):
+        return self._id
+
+    @hybrid_property
+    def name(self):
+        return self._name
+
+    @hybrid_property
+    def content(self):
+        return self._content
+    
+    @hybrid_property
+    def localPath(self):
+        return self._localPath
+    
+    @id.setter
+    def id(self, newValue: int):
+        self._id = newValue
+
+    @name.setter
+    def name(self, value: str | None):
+        self._name = value
+        IModel.queueToUpdate(self)
+
+    @content.setter
+    def content(self, value: object | None):
+        self._content = value
+        IModel.queueToUpdate(self)
+        
+    @localPath.setter
+    def localPath(self, value: str | None):
+        self._localPath = value
+        IModel.queueToUpdate(self)
+#endregion
+
+
 class Template(IModel):
     all_instances: list[Template] = []
     __tablename__ = "Templates"
 
-    _id = Column("id", Integer, primary_key=True)
+    _id = Column("id", Integer, primary_key=True, autoincrement=True)
     _name = Column("name", String(100), nullable=True)
     _content = Column("content", String, nullable=True)
-
+    _dataimport_id = Column("dataimport_id", Integer, #ForeignKey("DataImport.id", ondelete='SET NULL'), 
+                            nullable=True)
+    
+    # dataImportRel = relationship(DataImport, foreign_keys=[DataImport._id])
+    
     def __init__(self, **kwargs) -> None:
-        self.id = kwargs.pop('_id', None)
-        self.name = kwargs.pop('_name', None)
-        self.content = kwargs.pop('_content', None)
+        self.id: int = kwargs.pop('_id', None)
+        self.name: str = kwargs.pop('_name', None)
+        self.content: object = kwargs.pop('_content', None)
+        self._dataimport: DataImport = None
+        self.dataimport: DataImport = kwargs.pop("_dataimport_id", None)
         Template.all_instances.append(self)
         IModel.queueSave(child=self)
 
@@ -60,21 +137,32 @@ class Template(IModel):
     @hybrid_property
     def content(self):
         return self._content
+    
+    @hybrid_property
+    def dataimport(self) -> DataImport:
+        return self._dataimport
 
     @id.setter
     def id(self, newValue: int):
-        if newValue:
-            self._id = newValue
-        else:
-            self._id = max((i.id for i in Template.all_instances), default=0) + 1
+        # TODO: if initial setup / loading from db
+        self._id = newValue
 
     @name.setter
     def name(self, value: str | None):
         self._name = value
+        IModel.queueToUpdate(self)
 
     @content.setter
     def content(self, value: str | None):
         self._content = value
+        IModel.queueToUpdate(self)
+        
+    @dataimport.setter
+    def dataimport(self, value: DataImport | None):
+        self._dataimport = value
+        if value != None:
+            self._dataimport_id = value.id
+            IModel.queueToUpdate(self)
 #endregion
 
 

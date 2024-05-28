@@ -64,7 +64,11 @@ class TemplateEditor(Toplevel):
 
 
     def __add_external_source_clicked(self):
-        ExternalSourceImportWindow(self, self.parent.root)
+        ExternalSourceImportWindow(self, self.parent.root, self.currentTemplate)
+        
+    def update(self):
+        GapFillSource(self.currentTemplate.dataimport)
+        self.update_combo_values()
         
 
     def __on_html_key_clicked(self, event: Event):
@@ -76,6 +80,7 @@ class TemplateEditor(Toplevel):
         def update_preview():
             html_text = self.template_text.get("1.0", END)
             mb_tag = "MailBuddyGap>"
+            #TODO add 1 row preview from currentTemplate.DataImport
             replacement_text = '<span style="color:red;">'
 
             html_text = html_text.replace("<" + mb_tag, replacement_text)
