@@ -11,11 +11,10 @@ from group_controller import GroupController
 from models import Contact, IModel, Template, Group
 from tkhtmlview import HTMLLabel, HTMLText
 from DataSources.dataSources import GapFillSource
-from GroupEditor import GroupEditor
-from AddContactWindow import AddContactWindow
+from .AddContactWindow import AddContactWindow
 
 class ContactList(Toplevel):
-    def __init__(self, parent: Toplevel | GroupEditor, group: Group | None = None) -> None:
+    def __init__(self, parent: Toplevel, group: Group | None = None) -> None:
         super().__init__(parent)
         self.group = group
         self.parent = parent

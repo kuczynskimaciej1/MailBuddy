@@ -2,6 +2,7 @@ from tkinter import Text, Button, Label, Entry, Tk, Toplevel
 from tkinter.constants import END, INSERT, WORD
 from group_controller import GroupController
 from models import Contact, Group
+from .ContactList import ContactList
 
 
 class GroupEditor(Toplevel):

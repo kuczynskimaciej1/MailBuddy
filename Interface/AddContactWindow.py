@@ -14,7 +14,7 @@ from DataSources.dataSources import GapFillSource
 
 
 class AddContactWindow(Toplevel):
-    def __init__(self, parent: Toplevel | ContactList) -> None:
+    def __init__(self, parent: Toplevel) -> None:
         super().__init__(parent)
         self.parent = parent
     
