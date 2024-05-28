@@ -187,7 +187,7 @@ class GapFillSource():
     def __init__(self, source: IDataSource | IModel = Contact) -> None:
         if isinstance(source, IDataSource):
             self.iData: IDataSource = source
-        elif isinstance(source, DataImport):
+        elif isinstance(source, DataImport) or isinstance(source, list):
             self.model_source: IModel = source
         elif issubclass(source, IModel):
             self.model_source: IModel = source
@@ -217,3 +217,12 @@ class GapFillSource():
                 self.possible_values = self.model_source.getColumnPreview()
             else:
                 raise AttributeError(f"{type(self.model_source)} isn't supported")
+
+    @staticmethod
+    def getPreviewText(searched: str) -> str | None:
+        for g in GapFillSource.all_instances:
+            candidate = g.possible_values.get(searched, None)
+            if candidate == None:
+                continue
+            return candidate
+        return None

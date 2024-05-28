@@ -15,6 +15,7 @@ class IModel(declarative_base()):
     run_loading = True
     addQueued: list[IModel] = []
     updateQueued: list[IModel] = []
+    retrieveAdditionalQueued: list[IModel] = []
 
     @staticmethod
     def queueSave(child):
@@ -25,6 +26,11 @@ class IModel(declarative_base()):
     def queueToUpdate(child):
         if not IModel.run_loading:
             IModel.updateQueued.append(child)
+       
+    @staticmethod
+    def retrieveAdditionalData(child):
+        if isinstance(child, Template):
+            IModel.retrieveAdditionalQueued.append(child)
 
 
 class DataImport(IModel):
@@ -53,7 +59,7 @@ class DataImport(IModel):
                 continue
             
             columns = first_row
-            dataPreviewRow = next(sheet.iter_rows(values_only=True))
+            dataPreviewRow = next(sheet.iter_rows(min_row=2, values_only=True))
             for idx, c in enumerate(columns):
                 result[c] = dataPreviewRow[idx]
         return result if len(result) > 0 else None
@@ -113,8 +119,8 @@ class Template(IModel):
         self.id: int = kwargs.pop('_id', None)
         self.name: str = kwargs.pop('_name', None)
         self.content: object = kwargs.pop('_content', None)
-        self._dataimport: DataImport = None
-        self.dataimport: DataImport = kwargs.pop("_dataimport_id", None)
+        self.dataimport: DataImport = None
+        self.dataimport_id: int = kwargs.pop("_dataimport_id", None)
         Template.all_instances.append(self)
         IModel.queueSave(child=self)
 
@@ -139,8 +145,8 @@ class Template(IModel):
         return self._content
     
     @hybrid_property
-    def dataimport(self) -> DataImport:
-        return self._dataimport
+    def dataimport_id(self) -> DataImport:
+        return self._dataimport_id
 
     @id.setter
     def id(self, newValue: int):
@@ -157,12 +163,11 @@ class Template(IModel):
         self._content = value
         IModel.queueToUpdate(self)
         
-    @dataimport.setter
-    def dataimport(self, value: DataImport | None):
-        self._dataimport = value
-        if value != None:
-            self._dataimport_id = value.id
-            IModel.queueToUpdate(self)
+    @dataimport_id.setter
+    def dataimport_id(self, value: int | None):
+        self._dataimport_id = value
+        IModel.queueToUpdate(self)
+        IModel.retrieveAdditionalData(self)
 #endregion
 
 

@@ -37,6 +37,13 @@ def pushQueuedInstances():
         for o in IModel.updateQueued:
             db.Update(o)
             IModel.updateQueued.remove(o)
+    if len(IModel.retrieveAdditionalQueued) > 0:
+        for o in IModel.retrieveAdditionalQueued:
+            if isinstance(o, Template):
+                if o.dataimport_id:
+                    di = db.GetData(DataImport, id=o.dataimport_id)
+                    o.dataimport = di[0]
+            IModel.retrieveAdditionalQueued.remove(o)
 
 if __name__ == "__main__":
     db = DatabaseHandler(dbURL, tables)
