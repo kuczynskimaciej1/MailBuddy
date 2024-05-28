@@ -60,15 +60,14 @@ class ContactList(Toplevel):
         
     def populateWindow(self):
         shouldAddButton = self.parent != None
-        for idx, c in enumerate(Contact.all_instances):
-            self.create_contact_widget(c, idx, addBtn=shouldAddButton)
-        
         if self.group:
             group_contacts = GroupController.get_contacts(self.group)
             group_emails = {contact.email for contact in group_contacts}
-            for idx, c in enumerate(Contact.all_instances):
-                added_to_group = c.email in group_emails
-                self.create_contact_widget(c, idx, added_to_group, addBtn=shouldAddButton)
+            
+        for idx, c in enumerate(Contact.all_instances):
+            shouldToggle = c.email in group_emails
+            self.create_contact_widget(c, idx, added_to_group=shouldToggle, addBtn=shouldAddButton)
+                    
            
     def create_contact_widget(self, c: Contact, idx: int, added_to_group: bool = False, addBtn: bool = True):
         def toggle_checkbox():

@@ -27,5 +27,7 @@ class GroupController:
         # TODO: Wydajność? Wywołania tego na potencjalnie ogromnej tabeli to spory koszt, na pewno można to jakoś kiedyś ładnie zoptymalizować
         result = []
         for entry in mapping:
-            result.append(*cls.dbh.GetData(Contact, email=entry.contact_id))
+            data: list = cls.dbh.GetData(Contact, email=entry.contact_id)
+            if len(data) > 0:
+                result.append(*data)
         return result

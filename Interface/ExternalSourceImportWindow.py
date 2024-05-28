@@ -1,13 +1,16 @@
+from os.path import basename
 from tkinter import END, Misc, Tk, Toplevel
 import tkinter.messagebox as msg
 import tkinter.filedialog as fd
 from tkinter.ttk import Button, Label, Combobox, Treeview, Scrollbar
 from openpyxl import load_workbook
+from models import DataImport, Template
 
 class ExternalSourceImportWindow(Toplevel):
-    def __init__(self, parent: Toplevel | Tk, master: Misc) -> None:
+    def __init__(self, parent: Toplevel | Tk, master: Misc, template: Template) -> None:
         super().__init__(master)
-        
+        self.parent = parent
+        self.template = template
         self.prepareInterface()
         self.file_path = None
 
@@ -52,7 +55,7 @@ class ExternalSourceImportWindow(Toplevel):
             sheet_names = workbook.sheetnames
             self.combobox['values'] = sheet_names
             if sheet_names:
-                self.combobox.current(0)  # Set the first sheet as the default selection
+                self.combobox.current(0)
                 self.update_preview()
         except Exception as e:
             msg.showerror("Error", f"Failed to read the Excel file: {e}")
@@ -67,15 +70,23 @@ class ExternalSourceImportWindow(Toplevel):
             sheet = workbook[selected_sheet]
             
             self.treeview.delete(*self.treeview.get_children())
-            self.treeview["columns"] = [f"col{i}" for i in range(1, sheet.max_column + 1)]
-            for i, col in enumerate(self.treeview["columns"], start=1):
-                self.treeview.heading(col, text=f"Column {i}")
+            first_row = next(sheet.iter_rows(values_only=True))
+            if "Email" not in first_row:
+                # TODO: Można zrobić jakiś label zamiast treeview i errora
+                raise ValueError("Arkusz musi mieć kolumnę 'Email', aby dało się go połączyć z danymi")
+                
+            self.treeview["columns"] = first_row
+            for col in first_row:
+                self.treeview.heading(col, text=col)
                 self.treeview.column(col, width=100)
 
-            for row in sheet.iter_rows(values_only=True):
+            for row in sheet.iter_rows(min_row=2, values_only=True):
                 self.treeview.insert("", END, values=row)
         except Exception as e:
             msg.showerror("Error", f"Failed to read the selected worksheet: {e}")
 
     def add_data(self):
-        msg.showinfo("Add Data", "This functionality will be implemented later.")
+        di = DataImport(_name=basename(self.file_path), _localPath=self.file_path)
+        self.template.dataimport = di
+        self.parent.update()
+        self.destroy()

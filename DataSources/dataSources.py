@@ -4,7 +4,7 @@ from collections.abc import Iterable
 from enum import Enum
 from pandas import read_csv, read_excel, DataFrame
 from additionalTableSetup import GroupContacts
-from models import IModel, Contact
+from models import DataImport, IModel, Contact
 import sqlalchemy as alchem
 import sqlalchemy.orm as orm
 from sqlalchemy.exc import IntegrityError
@@ -117,20 +117,33 @@ class DatabaseHandler(IDataSource):
                     continue
         IModel.run_loading = False
 
+    def Update(self, obj: IModel):
+        Session = orm.sessionmaker(bind=self.dbEngineInstance)
+        try:
+            with Session() as session:
+                session.merge(obj)
+                session.commit()
+        except IntegrityError as ie:
+            print(ie)
+        except Exception as e:
+            print(e)
+        finally:
+            self.dbEngineInstance.dispose()
+
     def Save(self, obj: IModel | GroupContacts):
         Session = orm.sessionmaker(bind=self.dbEngineInstance)
         try:
             with Session() as session:
-                        session.add(obj)
-                        session.commit()
-                        session.refresh(obj)
+                session.add(obj)
+                session.commit()
+                session.refresh(obj)
         except IntegrityError as ie:
             print(ie)
         except Exception as e:
             print(e)
         self.dbEngineInstance.dispose()
 
-    def DeleteEntry(self, obj: IModel | GroupContacts):
+    def DeleteEntry(self, obj: IModel | GroupContacts): 
         Session = orm.sessionmaker(bind=self.dbEngineInstance)
         with Session() as session:
             session.delete(obj)
@@ -174,6 +187,8 @@ class GapFillSource():
     def __init__(self, source: IDataSource | IModel = Contact) -> None:
         if isinstance(source, IDataSource):
             self.iData: IDataSource = source
+        elif isinstance(source, DataImport) or isinstance(source, list):
+            self.model_source: IModel = source
         elif issubclass(source, IModel):
             self.model_source: IModel = source
         else:
@@ -198,5 +213,16 @@ class GapFillSource():
         elif hasattr(self, "model_source"):
             if self.model_source == Contact:
                 self.possible_values = { name: attr for name, attr in Contact.__dict__.items() if isinstance(attr, hybrid_property) and attr != "all_instances" }
+            elif isinstance(self.model_source, DataImport):
+                self.possible_values = self.model_source.getColumnPreview()
             else:
                 raise AttributeError(f"{type(self.model_source)} isn't supported")
+
+    @staticmethod
+    def getPreviewText(searched: str) -> str | None:
+        for g in GapFillSource.all_instances:
+            candidate = g.possible_values.get(searched, None)
+            if candidate == None:
+                continue
+            return candidate
+        return None

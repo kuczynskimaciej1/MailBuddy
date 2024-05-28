@@ -3,7 +3,7 @@ from MessagingService.readers import *
 from UserInfo.LoginService import *
 # from sys import platform
 from group_controller import GroupController
-from models import IModel, Template, Attachment, Contact, Message, Group, User
+from models import DataImport, IModel, Template, Attachment, Contact, Message, Group, User
 from Triggers.triggers import ITrigger
 from Interface.AppUI import AppUI
 from DataSources.dataSources import DatabaseHandler, GapFillSource, IDataSource
@@ -24,48 +24,47 @@ smtp_security = "tls"
 
 dbname = "localSQLite.sqlite3"
 dbURL = f"sqlite:///{dbname}"
-tables = [Template, Attachment, Contact, User, ITrigger, Message, Group, MessageAttachment, SendAttempt, GroupContacts]
+tables = [Template, DataImport, Attachment, Contact, User, ITrigger, Message, Group, MessageAttachment, SendAttempt, GroupContacts]
 db: IDataSource = None
 
-
-def populateInterface(app: AppUI) -> None:
-    modelType_func_mapper = {
-        Template: app.add_template,
-        Group: app.add_group
-        }
-    
-    for (modelType, ui_func) in modelType_func_mapper.items():
-        ui_func(modelType.all_instances)
     
 def pushQueuedInstances():
-    if len(IModel.saveQueued) > 0:
-        for o in IModel.saveQueued:
-            # match type(o):
-            #     case type(Group):
-            #         GroupContacts.FromGroup(o)
-            #     case _:
+    if len(IModel.addQueued) > 0:
+        for o in IModel.addQueued:
             db.Save(o)
-            IModel.saveQueued.remove(o)
+            IModel.addQueued.remove(o)
+    if len(IModel.updateQueued) > 0:
+        for o in IModel.updateQueued:
+            db.Update(o)
+            IModel.updateQueued.remove(o)
+    if len(IModel.retrieveAdditionalQueued) > 0:
+        for o in IModel.retrieveAdditionalQueued:
+            if isinstance(o, Template):
+                if o.dataimport_id:
+                    di = db.GetData(DataImport, id=o.dataimport_id)
+                    o.dataimport = di[0]
+            IModel.retrieveAdditionalQueued.remove(o)
 
 if __name__ == "__main__":
     db = DatabaseHandler(dbURL, tables)
     GroupController.setDbHandler(db)
-    ui = AppUI()
-    ui.prepareInterface()
     
     if db.checkIntegrity():
         print("Database intact, proceeding")
     db.LoadSavedState()
-    populateInterface(ui)
+    
+    ui = AppUI()
+    ui.prepareInterface()
+    
     
     _contact_fields = GapFillSource()
     
     if (mocking_enabled):
         try:    
-            mock_user = User(email=mock_login, 
-                            first_name=mock_name, 
-                            last_name=mock_lastname, 
-                            password=mock_pwd)
+            mock_user = User(_email=mock_login, 
+                            _first_name=mock_name, 
+                            _last_name=mock_lastname, 
+                            _password=mock_pwd)
             sender = SMTPSender(mock_user)
         except Exception as e:
             print(e)

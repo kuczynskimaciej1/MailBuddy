@@ -1,3 +1,4 @@
+import re
 from enum import Enum
 from tkinter import Event, Tk, Button, Label, Entry, Toplevel, Misc
 from tkinter.ttk import Combobox, Frame
@@ -16,6 +17,8 @@ class TemplateEditor(Toplevel):
         self.parent = parent
         self.combo_frame: Frame = None
         self.currentTemplate = obj
+        if self.currentTemplate and self.currentTemplate.dataimport:
+            GapFillSource(self.currentTemplate.dataimport)
 
         self.update_combo_values()
         self.prepareInterface()
@@ -64,7 +67,11 @@ class TemplateEditor(Toplevel):
 
 
     def __add_external_source_clicked(self):
-        ExternalSourceImportWindow(self, self.parent.root)
+        ExternalSourceImportWindow(self, self.parent.root, self.currentTemplate)
+        
+    def update(self):
+        GapFillSource(self.currentTemplate.dataimport)
+        self.update_combo_values()
         
 
     def __on_html_key_clicked(self, event: Event):
@@ -75,11 +82,19 @@ class TemplateEditor(Toplevel):
     def __on_text_changed(self, event):
         def update_preview():
             html_text = self.template_text.get("1.0", END)
-            mb_tag = "MailBuddyGap>"
-            replacement_text = '<span style="color:red;">'
 
-            html_text = html_text.replace("<" + mb_tag, replacement_text)
-            html_text = html_text.replace("</" + mb_tag, "</span>")
+            color_span_text = '<span style="color:red;">'
+            pattern = r"<MailBuddyGap>\s*([^<>\s][^<>]*)\s*</MailBuddyGap>"
+            matches = re.findall(pattern, html_text)
+            
+            preview_text = "" #TODO
+            for m in matches:
+                preview_text = GapFillSource.getPreviewText(m)
+                html_text = html_text.replace(f"<MailBuddyGap>{m}</MailBuddyGap>", color_span_text + preview_text + "</span>")
+                
+
+            html_text = html_text.replace("<MailBuddyGap>", color_span_text)
+            html_text = html_text.replace("</MailBuddyGap>", "</span>")
             self.template_preview.set_html(html_text)
             
         update_preview()

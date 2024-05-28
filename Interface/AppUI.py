@@ -35,6 +35,18 @@ class AppUI():
         self.__create_mailing_group_pane()
         self.__create_template_pane()
         self.__create_mail_input_pane()
+        self.populateInterface()
+
+
+    def populateInterface(self) -> None:
+        modelType_func_mapper = {
+            Template: self.add_template,
+            Group: self.add_group
+            }
+        
+        for (modelType, ui_func) in modelType_func_mapper.items():
+            ui_func(modelType.all_instances)
+
 
     def add_periodic_task(self, period: int, func: Callable):
         # TODO można poprawić żeby się odpalało tylko przy dodaniu obiektu,
@@ -69,6 +81,14 @@ class AppUI():
             [self.grupy.append(i) for i in g if i not in self.grupy]
         self.__update_listbox(self.grupy_listbox, self.grupy)
 
+    def clearData(self):
+        self.grupy = []
+        self.szablony = []
+
+    def update(self):
+        self.clearData()
+        self.populateInterface()
+
     def __add_group_clicked(self):
         self.show_group_window()
         
@@ -78,12 +98,6 @@ class AppUI():
 
     def __send_clicked(event) -> None:
         print("send mail")
-        pass
-
-    def __importuj_clicked(self):
-        pass
-
-    def __eksportuj_clicked(self):
         pass
 
     def __template_selection_changed(self, _event):
@@ -101,7 +115,9 @@ class AppUI():
         selected: int = self.grupy_listbox.curselection()
         if len(selected) > 0:
             g: Group = self.grupy[selected[0]]
-            mails = [", ".join(x.email) for x in g.contacts]
+            mails = ""
+            for c in g.contacts:
+                mails += c.email + ", "
             self.entry_adres.delete(0, END) 
             self.entry_adres.insert(INSERT, mails)
 
@@ -134,11 +150,6 @@ class AppUI():
     def __create_menu(self):
         menubar = Menu(self.root)
 
-        file_menu = Menu(menubar, tearoff=0)
-        file_menu.add_command(label="Import", command=self.__importuj_clicked)
-        file_menu.add_command(label="Export", command=self.__eksportuj_clicked)
-        menubar.add_cascade(label="File", menu=file_menu)
-
         edit_menu = Menu(menubar, tearoff=0)
         add_menu = Menu(edit_menu, tearoff=0)
         add_menu.add_command(
@@ -147,7 +158,7 @@ class AppUI():
         add_menu.add_command(label="Group", command=self.__add_group_clicked)
         edit_menu.add_cascade(label="Add...", menu=add_menu)
         menubar.add_cascade(label="Edit", menu=edit_menu)
-        menubar.add_command(label="Open Settings", command=self.logout)
+        menubar.add_command(label="Open Settings", command=self.__openSettings_clicked)
         menubar.add_command(label="Send", command=lambda: self.__send_clicked())
 
 
@@ -171,6 +182,7 @@ class AppUI():
         grupy_label.pack()
         self.grupy_listbox.pack(fill=BOTH, expand=True)
 
+
     def __create_template_pane(self):
         templates_frame = Frame(
             self.root, bg="lightblue", width=200, height=100, relief=RIDGE, borderwidth=2)
@@ -187,6 +199,7 @@ class AppUI():
                              fill=BOTH, expand=True, ipadx=5, ipady=5)
         szablony_label.pack()
         self.template_listbox.pack(fill=BOTH, expand=True)
+
 
     def __create_mail_input_pane(self):
         entry_frame = Frame(self.root, bg="lightblue",
@@ -212,8 +225,7 @@ class AppUI():
         self.template_window = TemplateEditor(self, self.root, obj)
         self.template_window.prepareInterface()
 
-    def logout(self):
-       
+    def __openSettings_clicked(self):
         root = Tk()  # Otwórz ponownie okno logowania
         settings = Settings(root)
         settings.prepareInterface()

@@ -1,5 +1,6 @@
 from __future__ import annotations
 from email.mime.multipart import MIMEMultipart
+from openpyxl import load_workbook
 from sqlalchemy import Column, ForeignKey, Integer, String, LargeBinary, TIMESTAMP, func
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -12,26 +13,114 @@ __all__ = ["Template", "Attachment", "Contact", "User", "Message", "Group"]
 class IModel(declarative_base()):
     __abstract__ = True
     run_loading = True
-    saveQueued: list[IModel] = []
+    addQueued: list[IModel] = []
+    updateQueued: list[IModel] = []
+    retrieveAdditionalQueued: list[IModel] = []
 
     @staticmethod
     def queueSave(child):
         if not IModel.run_loading:
-            IModel.saveQueued.append(child)
+            IModel.addQueued.append(child)
+    
+    @staticmethod
+    def queueToUpdate(child):
+        if not IModel.run_loading:
+            IModel.updateQueued.append(child)
+       
+    @staticmethod
+    def retrieveAdditionalData(child):
+        if isinstance(child, Template):
+            IModel.retrieveAdditionalQueued.append(child)
+
+
+class DataImport(IModel):
+    all_instances: list[DataImport] = []
+    __tablename__ = "DataImport"
+
+    _id = Column("id", Integer, primary_key=True, autoincrement=True)
+    _name = Column("name", String(100))
+    _localPath = Column("localPath", String(255), nullable=True)
+    _content = Column("content", LargeBinary, nullable=True)
+    
+    def __init__(self, **kwargs) -> None:
+        self.id = kwargs.pop('_id', None)
+        self.name = kwargs.pop('_name', None)
+        self.localPath = kwargs.pop('_localPath', None)
+        self.content = kwargs.pop('_content', None)
+        DataImport.all_instances.append(self)
+        IModel.queueSave(child=self)
+        
+    def getColumnPreview(self) -> dict | None:
+        workbook = load_workbook(self.localPath, read_only=True)
+        result = dict()
+        for sheet in workbook:
+            first_row = next(sheet.iter_rows(values_only=True))
+            if "Email" not in first_row:
+                continue
+            
+            columns = first_row
+            dataPreviewRow = next(sheet.iter_rows(min_row=2, values_only=True))
+            for idx, c in enumerate(columns):
+                result[c] = dataPreviewRow[idx]
+        return result if len(result) > 0 else None
+            
+
+# region Properties
+    @hybrid_property
+    def id(self):
+        return self._id
+
+    @hybrid_property
+    def name(self):
+        return self._name
+
+    @hybrid_property
+    def content(self):
+        return self._content
+    
+    @hybrid_property
+    def localPath(self):
+        return self._localPath
+    
+    @id.setter
+    def id(self, newValue: int):
+        self._id = newValue
+
+    @name.setter
+    def name(self, value: str | None):
+        self._name = value
+        IModel.queueToUpdate(self)
+
+    @content.setter
+    def content(self, value: object | None):
+        self._content = value
+        IModel.queueToUpdate(self)
+        
+    @localPath.setter
+    def localPath(self, value: str | None):
+        self._localPath = value
+        IModel.queueToUpdate(self)
+#endregion
 
 
 class Template(IModel):
     all_instances: list[Template] = []
     __tablename__ = "Templates"
 
-    _id = Column("id", Integer, primary_key=True)
+    _id = Column("id", Integer, primary_key=True, autoincrement=True)
     _name = Column("name", String(100), nullable=True)
     _content = Column("content", String, nullable=True)
-
+    _dataimport_id = Column("dataimport_id", Integer, #ForeignKey("DataImport.id", ondelete='SET NULL'), 
+                            nullable=True)
+    
+    # dataImportRel = relationship(DataImport, foreign_keys=[DataImport._id])
+    
     def __init__(self, **kwargs) -> None:
-        self.id = kwargs.pop('_id', None)
-        self.name = kwargs.pop('_name', None)
-        self.content = kwargs.pop('_content', None)
+        self.id: int = kwargs.pop('_id', None)
+        self.name: str = kwargs.pop('_name', None)
+        self.content: object = kwargs.pop('_content', None)
+        self.dataimport: DataImport = None
+        self.dataimport_id: int = kwargs.pop("_dataimport_id", None)
         Template.all_instances.append(self)
         IModel.queueSave(child=self)
 
@@ -54,21 +143,31 @@ class Template(IModel):
     @hybrid_property
     def content(self):
         return self._content
+    
+    @hybrid_property
+    def dataimport_id(self) -> DataImport:
+        return self._dataimport_id
 
     @id.setter
     def id(self, newValue: int):
-        if newValue:
-            self._id = newValue
-        else:
-            self._id = max((i.id for i in Template.all_instances), default=0) + 1
+        # TODO: if initial setup / loading from db
+        self._id = newValue
 
     @name.setter
     def name(self, value: str | None):
         self._name = value
+        IModel.queueToUpdate(self)
 
     @content.setter
     def content(self, value: str | None):
         self._content = value
+        IModel.queueToUpdate(self)
+        
+    @dataimport_id.setter
+    def dataimport_id(self, value: int | None):
+        self._dataimport_id = value
+        IModel.queueToUpdate(self)
+        IModel.retrieveAdditionalData(self)
 #endregion
 
 
@@ -176,18 +275,25 @@ class User(IModel):
     all_instances = []
     __tablename__ = "Users"
 
-    _id = Column("_id", Integer, primary_key=True)
-    _email = Column("email", String(100), ForeignKey('Contacts.email'))
+    _id = Column("_id", Integer, primary_key=True, autoincrement=True)
+    _email = Column("email", String(100), ForeignKey('Contacts.email'), unique=True)
+    
     
     contactRel = relationship(Contact, foreign_keys=[_email])
     
 
-    def __init__(self, first_name: str, last_name: str,
-                 email: str, password: str) -> None:
-        self.contact = Contact(_first_name=first_name, _last_name=last_name, _email=email)
-        self.password = password
+    def __init__(self, **kwargs) -> None:
+        self._email = kwargs.pop("_email")
+        self.password = kwargs.pop("_password", None)
+        self.contact = self.getExistingContact(kwargs.pop("_first_name", None), kwargs.pop("_last_name", None))
         User.all_instances.append(self)
         IModel.queueSave(child=self)
+        
+    def getExistingContact(self, first_name, last_name) -> Contact:
+        for c in Contact.all_instances:
+            if c.email == self._email:
+                return c
+        return Contact(_first_name=first_name, _last_name=last_name, _email=self._email)
 
 
 class Message(IModel, MIMEMultipart):
@@ -226,6 +332,15 @@ class Group(IModel):
         self.contacts: list[Contact] = kwargs.pop("_contacts", [])
         Group.all_instances.append(self)
         IModel.queueSave(self)
+        
+    @hybrid_property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value: str | None):
+        self._name = value
+        IModel.queueToUpdate(self)
     
     def __str__(self):
         return f"{self.id}: {self.name}"
@@ -262,4 +377,5 @@ class Group(IModel):
     @name.setter
     def name(self, value: str | None):
         self._name = value
+        IModel.queueToUpdate(self)
 #endregion
