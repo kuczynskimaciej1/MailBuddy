@@ -1,7 +1,7 @@
 from __future__ import annotations
 from email.mime.multipart import MIMEMultipart
 from openpyxl import load_workbook
-from sqlalchemy import Column, ForeignKey, Integer, String, LargeBinary, TIMESTAMP, func
+from sqlalchemy import BOOLEAN, Column, ForeignKey, Integer, String, LargeBinary, TIMESTAMP, func
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.ext.hybrid import hybrid_property
 import re
@@ -277,7 +277,7 @@ class User(IModel):
 
     _id = Column("_id", Integer, primary_key=True, autoincrement=True)
     _email = Column("email", String(100), ForeignKey('Contacts.email'), unique=True)
-    
+    _selected = Column("selected", BOOLEAN)
     
     contactRel = relationship(Contact, foreign_keys=[_email])
     
@@ -286,8 +286,16 @@ class User(IModel):
         self._email = kwargs.pop("_email")
         self.password = kwargs.pop("_password", None)
         self.contact = self.getExistingContact(kwargs.pop("_first_name", None), kwargs.pop("_last_name", None))
+        self._selected = kwargs.pop("_selected", None)
         User.all_instances.append(self)
         IModel.queueSave(child=self)
+    
+    @staticmethod
+    def GetCurrentUser() -> User | None:
+        for u in User.all_instances:
+            if u._selected:
+                return u
+        return None
         
     def getExistingContact(self, first_name, last_name) -> Contact:
         for c in Contact.all_instances:

@@ -4,11 +4,12 @@ from traceback import print_tb
 from typing import NoReturn
 from tkinter import Menu, simpledialog, Listbox, Tk, Frame, Label, Entry, Scrollbar
 from tkinter.constants import BOTH, RIDGE, END, LEFT, RIGHT, TOP, X, Y, INSERT
-from models import IModel, Template, Group
+from models import IModel, Message, Template, Group, User
 from tkhtmlview import HTMLLabel
 from .GroupEditor import GroupEditor
 from .Settings import Settings
 from .TemplateEditor import TemplateEditor
+from ..MessagingService.senders import ISender
 
 
 def errorHandler(xd, exctype: type, excvalue: Exception, tb: TracebackType):
@@ -47,6 +48,8 @@ class AppUI():
         for (modelType, ui_func) in modelType_func_mapper.items():
             ui_func(modelType.all_instances)
 
+    def setSender(self, new_sender: ISender):
+        self.sender = new_sender
 
     def add_periodic_task(self, period: int, func: Callable):
         # TODO można poprawić żeby się odpalało tylko przy dodaniu obiektu,
@@ -96,9 +99,20 @@ class AppUI():
         group_editor = GroupEditor(self, g)
         group_editor.prepareInterface()
 
-    def __send_clicked(event) -> None:
-        print("send mail")
-        pass
+    def __send_clicked(self, event) -> None:
+        tmp = self.grupy_listbox.curselection()
+        if len(tmp) == 0:
+            raise ValueError("Wybierz grupę!")
+        else:
+            selectedGroup: Group = tmp[0]    
+        
+        tmp = self.template_listbox.curselection()
+        if len(tmp) == 0:
+            raise ValueError("Wybierz templatkę!")
+        else:
+            selectedTemplate: Template = tmp[0]    
+        
+        self.sender.SendEmails(selectedGroup, selectedTemplate, User.GetCurrentUser())
 
     def __template_selection_changed(self, _event):
         selected = self.template_listbox.curselection()

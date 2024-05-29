@@ -57,6 +57,7 @@ if __name__ == "__main__":
     ui.prepareInterface()
     
     
+    
     _contact_fields = GapFillSource()
     
     if (mocking_enabled):
@@ -68,7 +69,7 @@ if __name__ == "__main__":
             sender = SMTPSender(mock_user)
         except Exception as e:
             print(e)
-        
+    ui.setSender(sender)    
     
     ui.add_periodic_task(5000, pushQueuedInstances)
     ui.run()
