@@ -8,7 +8,7 @@ from tkinter import Event, Menu, simpledialog, ttk, Listbox, Tk, Text, Button, F
 from tkinter.ttk import Combobox
 from tkinter.constants import NORMAL, DISABLED, BOTH, RIDGE, END, LEFT, RIGHT, TOP, X, Y, INSERT, SEL, WORD
 from group_controller import GroupController
-from models import Contact, IModel, Template, Group
+from models import Contact, IModel, Template, Group, User
 from tkhtmlview import HTMLLabel, HTMLText
 from DataSources.dataSources import GapFillSource
 from MessagingService.accountInfo import discover_email_settings
@@ -22,8 +22,9 @@ class Settings:
         self.root.geometry("400x400")
 
     def prepareInterface(self):
-        # TODO: tutaj powinniśmy ładować wartości z User
-        example_emails = ["kuczynskimaciej1@poczta.onet.pl", "example1@example.com", "example2@example.com", "example3@example.com"]
+        created_users = []
+        for u in User.all_instances:
+            created_users.append(u._email)
         
         label = Label(
             self.root,
@@ -31,7 +32,7 @@ class Settings:
             bg="lightblue",
             font=("Helvetica", 24))
 
-        self.email_combobox = Combobox(self.root, values=example_emails)
+        self.email_combobox = Combobox(self.root, values=created_users)
 
         self.password_entry = Entry(self.root, show="*")
         
