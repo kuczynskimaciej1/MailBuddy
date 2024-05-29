@@ -9,7 +9,7 @@ from tkhtmlview import HTMLLabel
 from .GroupEditor import GroupEditor
 from .Settings import Settings
 from .TemplateEditor import TemplateEditor
-from ..MessagingService.senders import ISender
+from MessagingService.senders import ISender
 
 
 def errorHandler(xd, exctype: type, excvalue: Exception, tb: TracebackType):
@@ -99,7 +99,8 @@ class AppUI():
         group_editor = GroupEditor(self, g)
         group_editor.prepareInterface()
 
-    def __send_clicked(self, event) -> None:
+    def __send_clicked(self) -> None:
+        # TODO: Jakoś trzeba ogarnąć multiple selection na template + group (albo zrobić jakiś hackment)
         tmp = self.grupy_listbox.curselection()
         if len(tmp) == 0:
             raise ValueError("Wybierz grupę!")
@@ -173,7 +174,7 @@ class AppUI():
         edit_menu.add_cascade(label="Add...", menu=add_menu)
         menubar.add_cascade(label="Edit", menu=edit_menu)
         menubar.add_command(label="Open Settings", command=self.__openSettings_clicked)
-        menubar.add_command(label="Send", command=lambda: self.__send_clicked())
+        menubar.add_command(label="Send", command=self.__send_clicked)
 
 
         self.root.config(menu=menubar)

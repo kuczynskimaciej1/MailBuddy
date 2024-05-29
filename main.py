@@ -66,7 +66,7 @@ if __name__ == "__main__":
                             _first_name=mock_name, 
                             _last_name=mock_lastname, 
                             _password=mock_pwd)
-            sender = SMTPSender(mock_user)
+            sender = SMTPSender()
         except Exception as e:
             print(e)
     ui.setSender(sender)    
