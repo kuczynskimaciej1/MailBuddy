@@ -7,10 +7,44 @@ import xml.etree.ElementTree as ET
 
 default_settings = {
     'gmail.com': {
-        'imap': {'host': 'imap.gmail.com', 'port': 993, 'ssl': True},
-        'smtp': {'host': 'smtp.gmail.com', 'port': 587, 'tls': True}
+        'imap': {'hostname': 'imap.gmail.com', 'port': 993, 'socket_type': 'SSL'},
+        'smtp': {'hostname': 'smtp.gmail.com', 'port': 587, 'socket_type': 'STARTTLS'}
+    },
+    'yahoo.com': {
+        'imap': {'hostname': 'imap.mail.yahoo.com', 'port': 993, 'socket_type': 'SSL'},
+        'smtp': {'hostname': 'smtp.mail.yahoo.com', 'port': 465, 'socket_type': 'SSL'}
+    },
+    'outlook.com': {
+        'imap': {'hostname': 'outlook.office365.com', 'port': 993, 'socket_type': 'SSL'},
+        'smtp': {'hostname': 'smtp.office365.com', 'port': 587, 'socket_type': 'STARTTLS'}
+    },
+    'poczta.onet.pl': {
+        'imap': {'hostname': 'imap.poczta.onet.pl', 'port': 993, 'socket_type': 'SSL'},
+        'smtp': {'hostname': 'smtp.poczta.onet.pl', 'port': 587, 'socket_type': 'STARTTLS'}
+    },
+    'onet.pl': {
+        'imap': {'hostname': 'imap.poczta.onet.pl', 'port': 993, 'socket_type': 'SSL'},
+        'smtp': {'hostname': 'smtp.poczta.onet.pl', 'port': 465, 'socket_type': 'SSL'}
+    },
+    'wp.pl': {
+        'imap': {'hostname': 'imap.wp.pl', 'port': 993, 'socket_type': 'SSL'},
+        'smtp': {'hostname': 'smtp.wp.pl', 'port': 465, 'socket_type': 'SSL'}
+    },
+    'interia.pl': {
+        'imap': {'hostname': 'imap.poczta.interia.pl', 'port': 993, 'socket_type': 'SSL'},
+        'smtp': {'hostname': 'smtp.poczta.interia.pl', 'port': 465, 'socket_type': 'SSL'}
+    },
+    'pcz.pl': {
+        'imap': {'hostname': 'imap.pcz.pl', 'port': 993, 'socket_type': 'SSL'},
+        'smtp': {'hostname': 'smtp.pcz.pl', 'port': 465, 'socket_type': 'SSL'}
+    },
+    'wimii.pcz.pl': {
+        'imap': {'hostname': 'imap.wimii.pcz.pl', 'port': 993, 'socket_type': 'SSL'},
+        'smtp': {'hostname': 'smtp.wimii.pcz.pl', 'port': 465, 'socket_type': 'SSL'}
     }
 }
+
+
 
 
 def get_domain(email):
@@ -91,21 +125,20 @@ def test_imap_connection(imap_settings, email, password):
 
 
 def test_smtp_connection(smtp_settings, email, password):
-    for setting in smtp_settings:
         try:
-            if setting['socket_type'] == 'SSL':
-                connection = smtplib.SMTP_SSL(setting['hostname'], setting['port'])
+            if smtp_settings == 'SSL':
+                connection = smtplib.SMTP_SSL(smtp_settings['hostname'], smtp_settings['port'])
             else:
-                connection = smtplib.SMTP(setting['hostname'], setting['port'])
-                if setting['socket_type'] == 'STARTTLS':
+                connection = smtplib.SMTP(smtp_settings['hostname'], smtp_settings['port'])
+                if smtp_settings == 'STARTTLS':
                     connection.starttls()
 
             connection.login(email, password)
             connection.quit()
             return True
         except Exception as e:
-            print(f"SMTP connection to {setting['hostname']} on port {setting['port']} failed: {e}")
-    return False
+            print(f"SMTP connection to {smtp_settings['hostname']} on port {smtp_settings['port']} failed: {e}")
+        return False
 
 
 def discover_email_settings(email, password):
@@ -124,7 +157,8 @@ def discover_email_settings(email, password):
     
     # Use default settings
     if domain in default_settings:
-        settings = default_settings[domain]
+        settings_xml = default_settings[domain]
+        print(settings_xml)
     else:
         print("No settings found for this domain.")
     
