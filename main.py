@@ -8,17 +8,13 @@ from Triggers.triggers import ITrigger
 from Interface.AppUI import AppUI
 from DataSources.dataSources import DatabaseHandler, GapFillSource, IDataSource
 from additionalTableSetup import GroupContacts, MessageAttachment, SendAttempt
+from MessagingService.smtp_data import smtp_security, smtp_host, smtp_port
 
-
-mocking_enabled = True
+mocking_enabled = False
 mock_name = "Russ"
 mock_lastname = "Connelly"
 mock_login = "russ.connelly30@ethereal.email"
 mock_pwd = "QQcGx1RmfVkaEMjzqZ"
-
-smtp_host = "smtp.ethereal.email"
-smtp_port = 587
-smtp_security = "tls"
 
 
 
@@ -69,6 +65,8 @@ if __name__ == "__main__":
             sender = SMTPSender()
         except Exception as e:
             print(e)
+
+    sender = SMTPSender()
     ui.setSender(sender)    
     
     ui.add_periodic_task(5000, pushQueuedInstances)

@@ -10,6 +10,8 @@ from .GroupEditor import GroupEditor
 from .Settings import Settings
 from .TemplateEditor import TemplateEditor
 from MessagingService.senders import ISender
+import MessagingService.smtp_data
+from MessagingService.ethereal_demo import send_email
 
 
 def errorHandler(xd, exctype: type, excvalue: Exception, tb: TracebackType):
@@ -101,19 +103,24 @@ class AppUI():
 
     def __send_clicked(self) -> None:
         # TODO: Jakoś trzeba ogarnąć multiple selection na template + group (albo zrobić jakiś hackment)
-        tmp = self.grupy_listbox.curselection()
-        if len(tmp) == 0:
-            raise ValueError("Wybierz grupę!")
-        else:
-            selectedGroup: Group = tmp[0]    
+        #tmp = self.grupy_listbox.curselection()
+        #if len(tmp) == 0:
+        #    raise ValueError("Wybierz grupę!")
+        #else:
+        #    selectedGroup: Group = tmp[0]    
         
-        tmp = self.template_listbox.curselection()
-        if len(tmp) == 0:
-            raise ValueError("Wybierz templatkę!")
-        else:
-            selectedTemplate: Template = tmp[0]    
+        #tmp = self.template_listbox.curselection()
+        #if len(tmp) == 0:
+        #    raise ValueError("Wybierz templatkę!")
+        #else:
+        #    selectedTemplate: Template = tmp[0]    
         
-        self.sender.SendEmails(selectedGroup, selectedTemplate, User.GetCurrentUser())
+        #self.sender.SendEmails(selectedGroup, selectedTemplate, User.GetCurrentUser())
+        message = "Hello"
+        print(message)
+        #recipient = 'kuczynskimaciej1@poczta.onet.pl'
+        #self.sender.Send(self, MessagingService.smtp_data.smtp_host, MessagingService.smtp_data.smtp_port, MessagingService.smtp_data.email, MessagingService.smtp_data.password, message, recipient)
+        send_email()
 
     def __template_selection_changed(self, _event):
         selected = self.template_listbox.curselection()
@@ -155,9 +162,7 @@ class AppUI():
             lb.delete(0, END)
             [lb.insert(END, k) for k in content.keys()]
         else:
-            raise AttributeError(
-                f"Wrong type of 'content', expected dict or Iterable, got {
-                    type(content)}")
+            raise AttributeError(f"Wrong type of 'content', expected dict or Iterable, got {type(content)}")
 
     def __add_template_clicked(self):
         self.show_template_window()

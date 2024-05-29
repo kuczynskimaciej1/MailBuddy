@@ -68,7 +68,7 @@ def modifyCell(CELL):
 
 def prepareMail(FROM, RECIPIENT, NAME, JOB, ATTACHMENT_PATH):
     MESSAGE = MIMEMultipart('mixed')
-    MESSAGE['Subject'] = "JoinThe.Space - networking offer"
+    MESSAGE['Subject'] = "Subject"
     MESSAGE['From'] = FROM
     MESSAGE['To'] = RECIPIENT[0]
     HTML = """\

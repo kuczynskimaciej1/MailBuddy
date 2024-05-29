@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 default_settings = {
     'gmail.com': {
         'imap': {'hostname': 'imap.gmail.com', 'port': 993, 'socket_type': 'SSL'},
-        'smtp': {'hostname': 'smtp.gmail.com', 'port': 587, 'socket_type': 'STARTTLS'}
+        'smtp': {'hostname': 'smtp.gmail.com', 'port': 465, 'socket_type': 'SSL'}
     },
     'yahoo.com': {
         'imap': {'hostname': 'imap.mail.yahoo.com', 'port': 993, 'socket_type': 'SSL'},
@@ -20,7 +20,7 @@ default_settings = {
     },
     'poczta.onet.pl': {
         'imap': {'hostname': 'imap.poczta.onet.pl', 'port': 993, 'socket_type': 'SSL'},
-        'smtp': {'hostname': 'smtp.poczta.onet.pl', 'port': 587, 'socket_type': 'STARTTLS'}
+        'smtp': {'hostname': 'smtp.poczta.onet.pl', 'port': 465, 'socket_type': 'SSL'}
     },
     'onet.pl': {
         'imap': {'hostname': 'imap.poczta.onet.pl', 'port': 993, 'socket_type': 'SSL'},
@@ -41,6 +41,11 @@ default_settings = {
     'wimii.pcz.pl': {
         'imap': {'hostname': 'imap.wimii.pcz.pl', 'port': 993, 'socket_type': 'SSL'},
         'smtp': {'hostname': 'smtp.wimii.pcz.pl', 'port': 465, 'socket_type': 'SSL'}
+    },
+    
+    'ethereal.email': {
+        'imap': {'hostname': 'imap.ethereal.email', 'port': 993, 'socket_type': 'SSL'},
+        'smtp': {'hostname': 'smtp.ethereal.email', 'port': 587, 'socket_type': 'STARTTLS'}
     }
 }
 
@@ -111,7 +116,7 @@ def parse_email_settings(xml_data):
 
 def test_imap_connection(imap_settings, email, password):
     try:
-        if imap_settings['socket_type'] == 'SSL':
+        if imap_settings == 'SSL':
             connection = imaplib.IMAP4_SSL(imap_settings['hostname'], imap_settings['port'])
         else:
             connection = imaplib.IMAP4(imap_settings['hostname'], imap_settings['port'])
@@ -149,24 +154,22 @@ def discover_email_settings(email, password):
     if mx_records:
         pass
     
-    # Try autodiscovery
     settings_xml = get_autodiscover_settings(domain)
     if settings_xml:
         settings_xml = parse_email_settings(settings_xml)
         pass
     
-    # Use default settings
     if domain in default_settings:
         settings_xml = default_settings[domain]
         print(settings_xml)
+        return settings_xml
     else:
         print("No settings found for this domain.")
     
-    # Test IMAP and SMTP connections
-    if test_imap_connection(settings_xml['imap'], email, password) and test_smtp_connection(settings_xml['smtp'], email, password):
-        print("Check ok")
-        print(settings_xml)
-        return settings_xml
-    else:
-        print("Failed to connect with discovered settings.")
-        return None
+    #if test_imap_connection(settings_xml['imap'], email, password) and test_smtp_connection(settings_xml['smtp'], email, password):
+       #print("Check ok")
+        #print(settings_xml)
+        #return settings_xml
+    #else:
+        #print("Failed to connect with discovered settings.")
+        #return None

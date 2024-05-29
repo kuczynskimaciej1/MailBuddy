@@ -1,7 +1,8 @@
 from abc import ABCMeta, abstractmethod
 from smtplib import *
+import MessagingService.smtp_data
 
-from models import Group, Template, User
+from models import Group, Template, User, Message
 
 class ISender(metaclass=ABCMeta):
     @abstractmethod
@@ -27,13 +28,20 @@ class SMTPSender(ISender):
         # TODO: Tworzenie obiektów Message i wysyłka
         raise NotImplementedError
     
-    def Send() -> None:
-        smtp_host = "" #hostname
-        smtp_port = 123
-        server = SMTP_SSL(smtp_host, smtp_port)
+    def Send(self, host, port, email, password, message, recipient) -> None:
+        smtp_host = host
+        smtp_port = port
+        print("PASSWORD: " + password)
+        print("RECIPIENT: " + recipient)
+        print("HOST: " + str(smtp_host))
+        print("PORT: " + str(smtp_port))
+        server = SMTP(smtp_host, smtp_port)
         server.connect(smtp_host, smtp_port)
+        server.starttls()
         server.ehlo()
-        server.login()
+        server.login(email, password)
+        server.sendmail(email, recipient, message)
+        server.quit()
         
 # class MockSMTPSender(ISender):
 #     def __init__(self) -> None:
