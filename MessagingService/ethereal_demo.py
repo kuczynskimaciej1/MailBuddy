@@ -2,17 +2,17 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
-import MessagingService.smtp_data
+#import MessagingService.smtp_data
 
 
 # Ethereal credentials
-ETH_USER = "russ.connelly30@ethereal.email"
-ETH_PASSWORD = "QQcGx1RmfVkaEMjzqZ"
+ETH_USER = ""
+ETH_PASSWORD = ""
 
 def send_email():
     # Email content
     sender_email = ETH_USER
-    receiver_email = "kuczynskimaciej1@poczta.onet.pl"
+    receiver_email = ""
     subject = "Example Email from Python"
     body = "Hello."
 
@@ -24,8 +24,8 @@ def send_email():
     message.attach(MIMEText(body, "plain"))
 
     # Connecting to Ethereal SMTP server
-    with smtplib.SMTP("smtp.ethereal.email", 587) as server:
-        server.starttls()
+    with smtplib.SMTP_SSL("smtp.poczta.onet.pl", 465) as server:
+        #server.starttls()
         server.login(ETH_USER, ETH_PASSWORD)
         server.sendmail(sender_email, receiver_email, message.as_string())
 
