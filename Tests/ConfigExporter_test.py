@@ -1,18 +1,17 @@
+from collections.abc import Callable
 import pytest
 import json
 from pathlib import Path
-from DataSources.dataSources import DatabaseHandler
 from UserInfo.cfgExporter import ConfigExporter, ExportLocation
 from models import Contact
-from dataGenerators import genContact
 # from models import __all__ as modelClassNames
 
 @pytest.fixture
-def getSampleJsonPath(tmp_path) -> Path:
+def getSampleJsonPath(tmp_path: Path) -> Path:
     return tmp_path / "test.json"
 
 
-def test_json_exporter_factory(getSampleJsonPath):
+def test_json_exporter_factory(getSampleJsonPath: Path):
     p = getSampleJsonPath
     exporter = ConfigExporter.ToJSON(p)
     assert isinstance(exporter, ConfigExporter)
@@ -20,7 +19,7 @@ def test_json_exporter_factory(getSampleJsonPath):
     assert exporter.location == p
 
 
-def test_export_to_json(getSampleJsonPath):
+def test_export_to_json(getSampleJsonPath: Path):
     filename = getSampleJsonPath
     exporter = ConfigExporter.ToJSON(str(filename))
     exporter.Export()
@@ -31,7 +30,7 @@ def test_export_to_json(getSampleJsonPath):
         assert isinstance(r.read(), str)
 
 
-def test_export_contact_to_json(getSampleJsonPath, genContact):
+def test_export_contact_to_json(getSampleJsonPath: Path, genContact: Callable[[], Contact]):
     c1 = genContact()
     c2 = genContact()
     assert c1 != c2

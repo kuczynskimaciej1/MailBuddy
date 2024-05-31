@@ -8,9 +8,11 @@ from tkinter import Event, Menu, simpledialog, ttk, Listbox, Tk, Text, Button, F
 from tkinter.ttk import Combobox
 from tkinter.constants import NORMAL, DISABLED, BOTH, RIDGE, END, LEFT, RIGHT, TOP, X, Y, INSERT, SEL, WORD
 from group_controller import GroupController
-from models import Contact, IModel, Template, Group
+from models import Contact, IModel, Template, Group, User
 from tkhtmlview import HTMLLabel, HTMLText
 from DataSources.dataSources import GapFillSource
+from MessagingService.accountInfo import discover_email_settings
+import MessagingService.smtp_data
 
 
 class Settings:
@@ -21,8 +23,9 @@ class Settings:
         self.root.geometry("400x400")
 
     def prepareInterface(self):
-        # TODO: tutaj powinniśmy ładować wartości z User
-        example_emails = ["example1@example.com", "example2@example.com", "example3@example.com"]
+        created_users = []
+        for u in User.all_instances:
+            created_users.append(u._email)
         
         label = Label(
             self.root,
@@ -30,7 +33,9 @@ class Settings:
             bg="lightblue",
             font=("Helvetica", 24))
 
-        self.email_combobox = Combobox(self.root, values=example_emails)
+        self.email_combobox = Combobox(self.root, values=created_users)
+
+        self.password_entry = Entry(self.root, show="*")
         
         connect_button = Button(
             self.root,
@@ -55,14 +60,25 @@ class Settings:
         
         label.pack(pady=20)
         self.email_combobox.pack(pady=5)
+        self.password_entry.pack(pady=5)
         connect_button.pack(pady=5)
         change_email_button.pack(pady=5)
         close_button.pack(pady=5)
 
     def connect(self):
-        email = self.email_combobox.get()
+        MessagingService.smtp_data.email = self.email_combobox.get()
+        MessagingService.smtp_data.password = self.password_entry.get()
+
         # TODO: połączenie z pocztą
-        messagebox.showinfo("Połączenie", f"Połączono z {email}")
+        email_settings = discover_email_settings(MessagingService.smtp_data.email, MessagingService.smtp_data.password)
+        print(email_settings)
+        MessagingService.smtp_data.smtp_host = email_settings['smtp']['hostname']
+        print(MessagingService.smtp_data.smtp_host)
+        MessagingService.smtp_data.smtp_port = email_settings['smtp']['port']
+        print(MessagingService.smtp_data.smtp_port)
+        MessagingService.smtp_data.smtp_security = email_settings['smtp']['socket_type']
+        print(MessagingService.smtp_data.smtp_security)
+        messagebox.showinfo("Połączenie", f"Połączono z {MessagingService.smtp_data.email}")
 
     def change_email(self):
         new_email = simpledialog.askstring(

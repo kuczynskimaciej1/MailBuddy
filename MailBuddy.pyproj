@@ -13,6 +13,7 @@
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <InterpreterId>Global|PythonCore|3.12</InterpreterId>
     <TestFramework>Pytest</TestFramework>
+    <SuppressPackageInstallationPrompt>True</SuppressPackageInstallationPrompt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
@@ -31,6 +32,7 @@
     <Compile Include="additionalTableSetup.py" />
     <Compile Include="DataSources\dataSources.py" />
     <Compile Include="group_controller.py" />
+    <Compile Include="Interface\ExternalSourceImportWindow.py" />
     <Compile Include="main.py" />
     <Compile Include="MessagingService\readers.py" />
     <Compile Include="MessagingService\senders.py" />

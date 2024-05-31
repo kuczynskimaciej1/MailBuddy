@@ -4,3 +4,4 @@ sqlalchemy
 pytest
 faker
 tkhtmlview
+dnspython

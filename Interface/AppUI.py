@@ -4,11 +4,14 @@ from traceback import print_tb
 from typing import NoReturn
 from tkinter import Menu, simpledialog, Listbox, Tk, Frame, Label, Entry, Scrollbar
 from tkinter.constants import BOTH, RIDGE, END, LEFT, RIGHT, TOP, X, Y, INSERT
-from models import IModel, Template, Group
+from models import IModel, Message, Template, Group, User
 from tkhtmlview import HTMLLabel
 from .GroupEditor import GroupEditor
 from .Settings import Settings
 from .TemplateEditor import TemplateEditor
+from MessagingService.senders import ISender
+import MessagingService.smtp_data
+from MessagingService.ethereal_demo import send_email
 
 
 def errorHandler(xd, exctype: type, excvalue: Exception, tb: TracebackType):
@@ -35,6 +38,20 @@ class AppUI():
         self.__create_mailing_group_pane()
         self.__create_template_pane()
         self.__create_mail_input_pane()
+        self.populateInterface()
+
+
+    def populateInterface(self) -> None:
+        modelType_func_mapper = {
+            Template: self.add_template,
+            Group: self.add_group
+            }
+        
+        for (modelType, ui_func) in modelType_func_mapper.items():
+            ui_func(modelType.all_instances)
+
+    def setSender(self, new_sender: ISender):
+        self.sender = new_sender
 
     def add_periodic_task(self, period: int, func: Callable):
         # TODO można poprawić żeby się odpalało tylko przy dodaniu obiektu,
@@ -69,6 +86,14 @@ class AppUI():
             [self.grupy.append(i) for i in g if i not in self.grupy]
         self.__update_listbox(self.grupy_listbox, self.grupy)
 
+    def clearData(self):
+        self.grupy = []
+        self.szablony = []
+
+    def update(self):
+        self.clearData()
+        self.populateInterface()
+
     def __add_group_clicked(self):
         self.show_group_window()
         
@@ -76,15 +101,26 @@ class AppUI():
         group_editor = GroupEditor(self, g)
         group_editor.prepareInterface()
 
-    def __send_clicked(event) -> None:
-        print("send mail")
-        pass
-
-    def __importuj_clicked(self):
-        pass
-
-    def __eksportuj_clicked(self):
-        pass
+    def __send_clicked(self) -> None:
+        # TODO: Jakoś trzeba ogarnąć multiple selection na template + group (albo zrobić jakiś hackment)
+        #tmp = self.grupy_listbox.curselection()
+        #if len(tmp) == 0:
+        #    raise ValueError("Wybierz grupę!")
+        #else:
+        #    selectedGroup: Group = tmp[0]    
+        
+        #tmp = self.template_listbox.curselection()
+        #if len(tmp) == 0:
+        #    raise ValueError("Wybierz templatkę!")
+        #else:
+        #    selectedTemplate: Template = tmp[0]    
+        
+        #self.sender.SendEmails(selectedGroup, selectedTemplate, User.GetCurrentUser())
+        message = "Hello"
+        print(message)
+        #recipient = 'kuczynskimaciej1@poczta.onet.pl'
+        #self.sender.Send(self, MessagingService.smtp_data.smtp_host, MessagingService.smtp_data.smtp_port, MessagingService.smtp_data.email, MessagingService.smtp_data.password, message, recipient)
+        send_email()
 
     def __template_selection_changed(self, _event):
         selected = self.template_listbox.curselection()
@@ -101,7 +137,9 @@ class AppUI():
         selected: int = self.grupy_listbox.curselection()
         if len(selected) > 0:
             g: Group = self.grupy[selected[0]]
-            mails = [", ".join(x.email) for x in g.contacts]
+            mails = ""
+            for c in g.contacts:
+                mails += c.email + ", "
             self.entry_adres.delete(0, END) 
             self.entry_adres.insert(INSERT, mails)
 
@@ -124,20 +162,13 @@ class AppUI():
             lb.delete(0, END)
             [lb.insert(END, k) for k in content.keys()]
         else:
-            raise AttributeError(
-                f"Wrong type of 'content', expected dict or Iterable, got {
-                    type(content)}")
+            raise AttributeError(f"Wrong type of 'content', expected dict or Iterable, got {type(content)}")
 
     def __add_template_clicked(self):
         self.show_template_window()
 
     def __create_menu(self):
         menubar = Menu(self.root)
-
-        file_menu = Menu(menubar, tearoff=0)
-        file_menu.add_command(label="Import", command=self.__importuj_clicked)
-        file_menu.add_command(label="Export", command=self.__eksportuj_clicked)
-        menubar.add_cascade(label="File", menu=file_menu)
 
         edit_menu = Menu(menubar, tearoff=0)
         add_menu = Menu(edit_menu, tearoff=0)
@@ -147,8 +178,8 @@ class AppUI():
         add_menu.add_command(label="Group", command=self.__add_group_clicked)
         edit_menu.add_cascade(label="Add...", menu=add_menu)
         menubar.add_cascade(label="Edit", menu=edit_menu)
-        menubar.add_command(label="Open Settings", command=self.logout)
-        menubar.add_command(label="Send", command=lambda: self.__send_clicked())
+        menubar.add_command(label="Open Settings", command=self.__openSettings_clicked)
+        menubar.add_command(label="Send", command=self.__send_clicked)
 
 
         self.root.config(menu=menubar)
@@ -171,6 +202,7 @@ class AppUI():
         grupy_label.pack()
         self.grupy_listbox.pack(fill=BOTH, expand=True)
 
+
     def __create_template_pane(self):
         templates_frame = Frame(
             self.root, bg="lightblue", width=200, height=100, relief=RIDGE, borderwidth=2)
@@ -187,6 +219,7 @@ class AppUI():
                              fill=BOTH, expand=True, ipadx=5, ipady=5)
         szablony_label.pack()
         self.template_listbox.pack(fill=BOTH, expand=True)
+
 
     def __create_mail_input_pane(self):
         entry_frame = Frame(self.root, bg="lightblue",
@@ -212,8 +245,7 @@ class AppUI():
         self.template_window = TemplateEditor(self, self.root, obj)
         self.template_window.prepareInterface()
 
-    def logout(self):
-       
+    def __openSettings_clicked(self):
         root = Tk()  # Otwórz ponownie okno logowania
         settings = Settings(root)
         settings.prepareInterface()

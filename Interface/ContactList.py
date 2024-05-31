@@ -11,11 +11,10 @@ from group_controller import GroupController
 from models import Contact, IModel, Template, Group
 from tkhtmlview import HTMLLabel, HTMLText
 from DataSources.dataSources import GapFillSource
-from GroupEditor import GroupEditor
-from AddContactWindow import AddContactWindow
+from .AddContactWindow import AddContactWindow
 
 class ContactList(Toplevel):
-    def __init__(self, parent: Toplevel | GroupEditor, group: Group | None = None) -> None:
+    def __init__(self, parent: Toplevel, group: Group | None = None) -> None:
         super().__init__(parent)
         self.group = group
         self.parent = parent
@@ -60,16 +59,15 @@ class ContactList(Toplevel):
         self.populateWindow()
         
     def populateWindow(self):
-        shouldAddButton = self.parent != None and isinstance(self.parent, GroupEditor)
-        for idx, c in enumerate(Contact.all_instances):
-            self.create_contact_widget(c, idx, addBtn=shouldAddButton)
-        
+        shouldAddButton = self.parent != None
         if self.group:
             group_contacts = GroupController.get_contacts(self.group)
             group_emails = {contact.email for contact in group_contacts}
-            for idx, c in enumerate(Contact.all_instances):
-                added_to_group = c.email in group_emails
-                self.create_contact_widget(c, idx, added_to_group, addBtn=shouldAddButton)
+            
+        for idx, c in enumerate(Contact.all_instances):
+            shouldToggle = c.email in group_emails
+            self.create_contact_widget(c, idx, added_to_group=shouldToggle, addBtn=shouldAddButton)
+                    
            
     def create_contact_widget(self, c: Contact, idx: int, added_to_group: bool = False, addBtn: bool = True):
         def toggle_checkbox():
@@ -91,15 +89,13 @@ class ContactList(Toplevel):
         
         try:    
             GroupController.add_contact(self.group, c)
-            if isinstance(self.parent, GroupEditor):
-                self.parent.update()
+            self.parent.update()
         except IntegrityError:
             pass
                 
     def remove_contact_from_group(self, c: Contact):
         GroupController.delete_connection(self.group, c)
-        if isinstance(self.parent, GroupEditor):
-            self.parent.update()
+        self.parent.update()
                 
     def search_contact(self):
         search_criteria = self.search_entry.get().strip()
