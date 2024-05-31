@@ -2,8 +2,8 @@ from collections.abc import Callable, Iterable
 from types import TracebackType
 from traceback import print_tb
 from typing import NoReturn
-from tkinter import Menu, simpledialog, Listbox, Tk, Frame, Label, Entry, Scrollbar
-from tkinter.constants import BOTH, RIDGE, END, LEFT, RIGHT, TOP, X, Y, INSERT
+from tkinter import Menu, simpledialog, Listbox, Tk, Frame, Label, Entry, Scrollbar, Button
+from tkinter.constants import BOTH, RIDGE, END, LEFT, RIGHT, TOP, BOTTOM, X, Y, INSERT
 from models import IModel, Message, Template, Group, User
 from tkhtmlview import HTMLLabel
 from .GroupEditor import GroupEditor
@@ -102,7 +102,6 @@ class AppUI():
         group_editor.prepareInterface()
 
     def __send_clicked(self) -> None:
-        # TODO: Jakoś trzeba ogarnąć multiple selection na template + group (albo zrobić jakiś hackment)
         #tmp = self.grupy_listbox.curselection()
         #if len(tmp) == 0:
         #    raise ValueError("Wybierz grupę!")
@@ -196,11 +195,21 @@ class AppUI():
             '<<ListboxSelect>>',
             self.__group_selection_changed)
         self.grupy_listbox.bind('<Double-1>', self.__group_doubleclicked)
+        assign_button = Button(
+        groups_frame, text="Wybierz grupę", command=self.__assign_group)
 
         groups_frame.pack(side=LEFT, padx=10, pady=10,
                           fill=BOTH, expand=True, ipadx=5, ipady=5)
         grupy_label.pack()
         self.grupy_listbox.pack(fill=BOTH, expand=True)
+        assign_button.pack(side=BOTTOM)
+
+
+    def __assign_group(self):
+        selected_index = self.grupy_listbox.curselection()
+        if selected_index:
+            selected_group = self.grupy_listbox.get(selected_index)
+            self.selected_mailing_group = selected_group
 
 
     def __create_template_pane(self):
@@ -214,11 +223,21 @@ class AppUI():
             '<<ListboxSelect>>',
             self.__template_selection_changed)
         self.template_listbox.bind('<Double-1>', self.__template_doubleclicked)
+        assign_button = Button(
+        templates_frame, text="Wybierz szablon", command=self.__assign_template)
 
         templates_frame.pack(side=LEFT, padx=10, pady=10,
                              fill=BOTH, expand=True, ipadx=5, ipady=5)
         szablony_label.pack()
         self.template_listbox.pack(fill=BOTH, expand=True)
+        assign_button.pack(side=BOTTOM)
+
+    
+    def __assign_template(self):
+        selected_index = self.template_listbox.curselection()
+        if selected_index: 
+            selected_group = self.template_listbox.get(selected_index)
+            self.selected_template_group = selected_group
 
 
     def __create_mail_input_pane(self):
