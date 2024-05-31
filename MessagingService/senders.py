@@ -1,7 +1,9 @@
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable
 from smtplib import *
-from models import User, Contact, Template
+import MessagingService.smtp_data
+
+from models import Group, Template, User, Message
 
 class ISender(metaclass=ABCMeta):
     @abstractmethod
@@ -14,23 +16,34 @@ class ISender(metaclass=ABCMeta):
             if any("Send" in B.__dict__ for B in __subclass.__mro__):
                 return True
         return NotImplemented
+    
+    @abstractmethod
+    def SendEmails(self, g: Group, t: Template, u: User) -> None:
+        # TODO: Tworzenie obiektów Message i wysyłka
+        raise AssertionError
 
     
 class SMTPSender(ISender):
-    def __init__(self, user: User, hostname: str, port: int) -> None:
-        self.hostname: str = hostname
-        self.port: int = port
-        self.user: User = user
-
-    def QueueMails(self, template: Template, contacts: Iterable[Contact]):
-        self.contacts = contacts
-        self.template = template
-        
-    def EstablishConnection(self):
-        self.server = SMTP_SSL(self.hostname, self.port)
-        self.server.ehlo()
-        self.server.login()
     
-    def Send(self) -> None:
-        self.EstablishConnection()
-        self.server.send_message(self.template.ToMessage(), self.user.contact.email, self.contacts)
+    def SendEmails(self, g: Group, t: Template, u: User) -> None:
+        # TODO: Tworzenie obiektów Message i wysyłka
+        raise NotImplementedError
+    
+    def Send(self, host, port, email, password, message, recipient) -> None:
+        smtp_host = host
+        smtp_port = port
+        print("PASSWORD: " + password)
+        print("RECIPIENT: " + recipient)
+        print("HOST: " + str(smtp_host))
+        print("PORT: " + str(smtp_port))
+        server = SMTP(smtp_host, smtp_port)
+        server.connect(smtp_host, smtp_port)
+        server.starttls()
+        server.ehlo()
+        server.login(email, password)
+        server.sendmail(email, recipient, message)
+        server.quit()
+        
+# class MockSMTPSender(ISender):
+#     def __init__(self) -> None:
+        
