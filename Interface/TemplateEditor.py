@@ -16,7 +16,7 @@ class TemplateEditor(Toplevel):
         super().__init__(master)
         self.parent = parent
         self.combo_frame: Frame = None
-        self.currentTemplate = obj if obj is not None else Template()
+        self.currentTemplate = obj if obj is not None else Template() #fix
         if self.currentTemplate and self.currentTemplate.dataimport:
             GapFillSource(self.currentTemplate.dataimport)
 
@@ -75,7 +75,7 @@ class TemplateEditor(Toplevel):
         
 
     def __on_html_key_clicked(self, event: Event):
-        if event.keycode not in [c.value for c in NonAlteringKeyCodes]:
+        if event.keycode not in [c.value for c in NonAlteringKeyCodes]: #python 3.11 fix
             self.template_text.event_generate("<<TextModified>>")
 
 
