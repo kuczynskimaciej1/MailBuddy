@@ -56,18 +56,10 @@ class GroupEditor(Toplevel):
 
     def __save_group_clicked(self) -> None:
         if not self.currentGroup:
-            self.currentGroup = Group(_name=self.name_entry.get())
+            self.currentGroup = Group(_name = self.name_entry.get())
         else:
             self.currentGroup.name = self.name_entry.get()
-        txt = self.email_text.get(1.0, END).strip()
-        email_addresses = [address for address in txt.replace("\n", "").split(",") if address.strip()]
-        # TODO: Przy zmianie kontrolek w grupie będzie trzeba zmienić wywoływanie konstruktora - te kontakty powinny być zapisane wcześniej, bez możliwości dodawania ich od tak z palca
-        for mail in email_addresses:
-            try:
-                self.currentGroup._add_contact(Contact(_email=mail))
-            except AttributeError as e:
-                raise e
-        self.parent.add_group(self.currentGroup)
+        self.parent.update()
         self.destroy()
 
     def import_emails(self):
