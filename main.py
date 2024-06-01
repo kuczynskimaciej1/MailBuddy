@@ -21,26 +21,10 @@ mock_pwd = "QQcGx1RmfVkaEMjzqZ"
 dbname = "localSQLite.sqlite3"
 dbURL = f"sqlite:///{dbname}"
 tables = [Template, DataImport, Attachment, Contact, User, ITrigger, Message, Group, MessageAttachment, SendAttempt, GroupContacts]
+global db
 db: IDataSource = None
 
     
-def pushQueuedInstances():
-    if len(IModel.addQueued) > 0:
-        for o in IModel.addQueued:
-            db.Save(o)
-            IModel.addQueued.remove(o)
-    if len(IModel.updateQueued) > 0:
-        for o in IModel.updateQueued:
-            db.Update(o)
-            IModel.updateQueued.remove(o)
-    if len(IModel.retrieveAdditionalQueued) > 0:
-        for o in IModel.retrieveAdditionalQueued:
-            if isinstance(o, Template):
-                if o.dataimport_id:
-                    di = db.GetData(DataImport, id=o.dataimport_id)
-                    o.dataimport = di[0]
-            IModel.retrieveAdditionalQueued.remove(o)
-
 if __name__ == "__main__":
     db = DatabaseHandler(dbURL, tables)
     GroupController.setDbHandler(db)
@@ -73,5 +57,5 @@ if __name__ == "__main__":
     # User(_email="russ.connelly30@ethereal.email", _password="QQcGx1RmfVkaEMjzqZ", _first_name="Russ", _last_name="Connelly", _selected=True)
     # ui.setUser(user)
     
-    ui.add_periodic_task(5000, pushQueuedInstances)
+    # ui.add_periodic_task(5000, pushQueuedInstances)
     ui.run()

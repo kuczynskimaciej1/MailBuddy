@@ -88,5 +88,6 @@ class ExternalSourceImportWindow(Toplevel):
     def add_data(self):
         di = DataImport(_name=basename(self.file_path), _localPath=self.file_path)
         self.template.dataimport = di
+        self.template.dataimport_id = di.id
         self.parent.update()
         self.destroy()

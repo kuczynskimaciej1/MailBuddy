@@ -27,16 +27,40 @@ class IModel(declarative_base()):
     def queueSave(child):
         if not IModel.run_loading:
             IModel.addQueued.append(child)
+        IModel.pushQueuedInstances()
     
     @staticmethod
     def queueToUpdate(child):
         if not IModel.run_loading:
             IModel.updateQueued.append(child)
+        IModel.pushQueuedInstances()
        
     @staticmethod
     def retrieveAdditionalData(child):
-        if isinstance(child, Template):
+        if isinstance(child, Template) or isinstance(child, Group):
             IModel.retrieveAdditionalQueued.append(child)
+        IModel.pushQueuedInstances()
+        
+    @staticmethod
+    def pushQueuedInstances():
+        global db
+        if len(IModel.addQueued) > 0:
+            for o in IModel.addQueued:
+                db.Save(o)
+                IModel.addQueued.remove(o)
+        if len(IModel.updateQueued) > 0:
+            for o in IModel.updateQueued:
+                db.Update(o)
+                IModel.updateQueued.remove(o)
+        if len(IModel.retrieveAdditionalQueued) > 0:
+            for o in IModel.retrieveAdditionalQueued:
+                if isinstance(o, Template):
+                    if o.dataimport_id:
+                        di = db.GetData(DataImport, id=o.dataimport_id)
+                        o.dataimport = di[0]
+                IModel.retrieveAdditionalQueued.remove(o)
+       
+    
 
 
 class DataImport(IModel):

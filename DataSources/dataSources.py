@@ -14,6 +14,8 @@ class SupportedDbEngines(Enum):
     SQLite=1
 
 class IDataSource():
+    current_instance = None
+    
     @classmethod
     def __subclasshook__(cls, subclass: type) -> bool:
         return (hasattr(subclass, 'GetData') and 
@@ -51,6 +53,7 @@ class DatabaseHandler(IDataSource):
             case _:
                 raise NotImplementedError
         self.tableCreators = tableCreators
+        IDataSource.current_instance = self
 
 
     def checkIntegrity(self) -> bool:
