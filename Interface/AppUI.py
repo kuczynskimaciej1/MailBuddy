@@ -2,16 +2,16 @@ from collections.abc import Callable, Iterable
 from types import TracebackType
 from traceback import print_tb
 from typing import NoReturn
-from tkinter import Menu, simpledialog, Listbox, Tk, Frame, Label, Entry, Scrollbar
-from tkinter.constants import BOTH, RIDGE, END, LEFT, RIGHT, TOP, X, Y, INSERT
+from tkinter import Menu, simpledialog, Listbox, Tk, Frame, Label, Entry, Scrollbar, Button, messagebox
+from tkinter.constants import BOTH, RIDGE, END, LEFT, RIGHT, TOP, BOTTOM, X, Y, INSERT
 from models import IModel, Message, Template, Group, User
 from tkhtmlview import HTMLLabel
 from .GroupEditor import GroupEditor
 from .Settings import Settings
 from .TemplateEditor import TemplateEditor
 from MessagingService.senders import ISender
-import MessagingService.smtp_data
-from MessagingService.ethereal_demo import send_email
+#import MessagingService.smtp_data
+#from MessagingService.ethereal_demo import send_email
 
 
 def errorHandler(xd, exctype: type, excvalue: Exception, tb: TracebackType):
@@ -42,16 +42,24 @@ class AppUI():
 
 
     def populateInterface(self) -> None:
-        modelType_func_mapper = {
-            Template: self.add_template,
-            Group: self.add_group
-            }
+        self.update_templates()
+        self.update_groups()
+        # modelType_func_mapper = {
+        #     Group: self.update_groups
+        #     }
         
-        for (modelType, ui_func) in modelType_func_mapper.items():
-            ui_func(modelType.all_instances)
+        # for (modelType, ui_func) in modelType_func_mapper.items():
+        #     ui_func(modelType.all_instances)
 
     def setSender(self, new_sender: ISender):
         self.sender = new_sender
+
+    def setUser(self, current_user: User):
+        self.user = current_user
+
+    def setDb(self, new_db):
+        #AppUI.db = new_db
+        IModel.db = new_db
 
     def add_periodic_task(self, period: int, func: Callable):
         # TODO można poprawić żeby się odpalało tylko przy dodaniu obiektu,
@@ -69,21 +77,23 @@ class AppUI():
         print("Exiting")
         exit()
 
-    def add_template(self, content: Template | Iterable[Template]):
-        if isinstance(content, Template):
-            if content not in self.szablony:
-                self.szablony.append(content)
-        else:
-            [self.szablony.append(i)
-             for i in content if i not in self.szablony]
+    def update_templates(self):
+        # if isinstance(content, Template):
+        #     if content not in self.szablony:
+        #         self.szablony.append(content)
+        # else:
+        #     [self.szablony.append(i)
+        #      for i in content if i not in self.szablony]
+        self.szablony = Template.all_instances
         self.__update_listbox(self.template_listbox, self.szablony)
 
-    def add_group(self, g: Group | Iterable[Group]):
-        if isinstance(g, Group):
-            if g not in self.grupy:
-                self.grupy.append(g)
-        else:
-            [self.grupy.append(i) for i in g if i not in self.grupy]
+    def update_groups(self):
+        # if isinstance(g, Group):
+        #     if g not in self.grupy:
+        #         self.grupy.append(g)
+        # else:
+        #     [self.grupy.append(i) for i in g if i not in self.grupy]
+        self.grupy = Group.all_instances
         self.__update_listbox(self.grupy_listbox, self.grupy)
 
     def clearData(self):
@@ -102,25 +112,17 @@ class AppUI():
         group_editor.prepareInterface()
 
     def __send_clicked(self) -> None:
-        # TODO: Jakoś trzeba ogarnąć multiple selection na template + group (albo zrobić jakiś hackment)
-        #tmp = self.grupy_listbox.curselection()
-        #if len(tmp) == 0:
-        #    raise ValueError("Wybierz grupę!")
-        #else:
-        #    selectedGroup: Group = tmp[0]    
+        if self.selected_mailing_group == None:
+            messagebox.showerror("Error", "Wybierz grupę!")
+            return
+
+        if self.selected_template_group == None:
+            messagebox.showerror("Error", "Wybierz szablon!")
+            return
         
-        #tmp = self.template_listbox.curselection()
-        #if len(tmp) == 0:
-        #    raise ValueError("Wybierz templatkę!")
-        #else:
-        #    selectedTemplate: Template = tmp[0]    
-        
-        #self.sender.SendEmails(selectedGroup, selectedTemplate, User.GetCurrentUser())
-        message = "Hello"
-        print(message)
-        #recipient = 'kuczynskimaciej1@poczta.onet.pl'
-        #self.sender.Send(self, MessagingService.smtp_data.smtp_host, MessagingService.smtp_data.smtp_port, MessagingService.smtp_data.email, MessagingService.smtp_data.password, message, recipient)
-        send_email()
+        u = User.GetCurrentUser()
+        self.sender.Send(self.selected_mailing_group, self.selected_template_group, u)
+        #send_email()
 
     def __template_selection_changed(self, _event):
         selected = self.template_listbox.curselection()
@@ -196,11 +198,27 @@ class AppUI():
             '<<ListboxSelect>>',
             self.__group_selection_changed)
         self.grupy_listbox.bind('<Double-1>', self.__group_doubleclicked)
+        assign_button = Button(
+        groups_frame, text="Wybierz grupę", command=self.__assign_group)
 
         groups_frame.pack(side=LEFT, padx=10, pady=10,
                           fill=BOTH, expand=True, ipadx=5, ipady=5)
         grupy_label.pack()
         self.grupy_listbox.pack(fill=BOTH, expand=True)
+        assign_button.pack(side=BOTTOM)
+
+
+    def __assign_group(self):
+        selected_index = self.grupy_listbox.curselection()
+        if selected_index:
+            selected_group = self.grupy_listbox.get(selected_index)
+            nameidx = selected_group.find(": ") + 1 # do ujęcia w tym spacji 
+            selected_group = selected_group[nameidx + 1::] # dodawanie do pominięcia spacji
+            for g in Group.all_instances:
+                if g.name == selected_group:
+                    self.selected_mailing_group = g
+                    return 
+            raise LookupError(f"Nie znaleziono grupy {selected_group}")
 
 
     def __create_template_pane(self):
@@ -214,11 +232,25 @@ class AppUI():
             '<<ListboxSelect>>',
             self.__template_selection_changed)
         self.template_listbox.bind('<Double-1>', self.__template_doubleclicked)
+        assign_button = Button(
+        templates_frame, text="Wybierz szablon", command=self.__assign_template)
 
         templates_frame.pack(side=LEFT, padx=10, pady=10,
                              fill=BOTH, expand=True, ipadx=5, ipady=5)
         szablony_label.pack()
         self.template_listbox.pack(fill=BOTH, expand=True)
+        assign_button.pack(side=BOTTOM)
+
+    
+    def __assign_template(self):
+        selected_index = self.template_listbox.curselection()
+        if selected_index: 
+            selected_template = self.template_listbox.get(selected_index)
+            for t in Template.all_instances:
+                if t.name == selected_template:
+                    self.selected_template_group = t
+                    return
+            raise LookupError(f"Nie znaleziono szablonu {selected_template}")
 
 
     def __create_mail_input_pane(self):
@@ -246,10 +278,9 @@ class AppUI():
         self.template_window.prepareInterface()
 
     def __openSettings_clicked(self):
-        root = Tk()  # Otwórz ponownie okno logowania
-        settings = Settings(root)
+        settings = Settings(self)
         settings.prepareInterface()
-        root.mainloop()
+        # root.mainloop()
 
 
 
