@@ -2,7 +2,7 @@ from collections.abc import Callable, Iterable
 from types import TracebackType
 from traceback import print_tb
 from typing import NoReturn
-from tkinter import Menu, simpledialog, Listbox, Tk, Frame, Label, Entry, Scrollbar, Button
+from tkinter import Menu, simpledialog, Listbox, Tk, Frame, Label, Entry, Scrollbar, Button, messagebox
 from tkinter.constants import BOTH, RIDGE, END, LEFT, RIGHT, TOP, BOTTOM, X, Y, INSERT
 from models import IModel, Message, Template, Group, User
 from tkhtmlview import HTMLLabel
@@ -10,8 +10,8 @@ from .GroupEditor import GroupEditor
 from .Settings import Settings
 from .TemplateEditor import TemplateEditor
 from MessagingService.senders import ISender
-import MessagingService.smtp_data
-from MessagingService.ethereal_demo import send_email
+#import MessagingService.smtp_data
+#from MessagingService.ethereal_demo import send_email
 
 
 def errorHandler(xd, exctype: type, excvalue: Exception, tb: TracebackType):
@@ -52,6 +52,9 @@ class AppUI():
 
     def setSender(self, new_sender: ISender):
         self.sender = new_sender
+
+    def setUser(self, current_user: User):
+        self.user = current_user
 
     def add_periodic_task(self, period: int, func: Callable):
         # TODO można poprawić żeby się odpalało tylko przy dodaniu obiektu,
@@ -102,24 +105,16 @@ class AppUI():
         group_editor.prepareInterface()
 
     def __send_clicked(self) -> None:
-        #tmp = self.grupy_listbox.curselection()
-        #if len(tmp) == 0:
-        #    raise ValueError("Wybierz grupę!")
-        #else:
-        #    selectedGroup: Group = tmp[0]    
+        if self.selected_mailing_group == None:
+            messagebox.showerror("Error", "Wybierz grupę!")
+            return
+
+        if self.selected_template_group == None:
+            messagebox.showerror("Error", "Wybierz szablon!")
+            return
         
-        #tmp = self.template_listbox.curselection()
-        #if len(tmp) == 0:
-        #    raise ValueError("Wybierz templatkę!")
-        #else:
-        #    selectedTemplate: Template = tmp[0]    
-        
-        #self.sender.SendEmails(selectedGroup, selectedTemplate, User.GetCurrentUser())
-        message = "Hello"
-        print(message)
-        #recipient = 'kuczynskimaciej1@poczta.onet.pl'
-        #self.sender.Send(self, MessagingService.smtp_data.smtp_host, MessagingService.smtp_data.smtp_port, MessagingService.smtp_data.email, MessagingService.smtp_data.password, message, recipient)
-        send_email()
+        self.sender.Send(self.selected_mailing_group, self.selected_template_group, self.user)
+        #send_email()
 
     def __template_selection_changed(self, _event):
         selected = self.template_listbox.curselection()
@@ -266,7 +261,7 @@ class AppUI():
 
     def __openSettings_clicked(self):
         root = Tk()  # Otwórz ponownie okno logowania
-        settings = Settings(root)
+        settings = Settings(root) #USER
         settings.prepareInterface()
         root.mainloop()
 

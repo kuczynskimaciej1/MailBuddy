@@ -11,8 +11,8 @@ from group_controller import GroupController
 from models import Contact, IModel, Template, Group, User
 from tkhtmlview import HTMLLabel, HTMLText
 from DataSources.dataSources import GapFillSource
-from MessagingService.accountInfo import discover_email_settings
-import MessagingService.smtp_data
+#from main import ui
+#import MessagingService.smtp_data
 
 
 class Settings:
@@ -36,7 +36,7 @@ class Settings:
         self.email_combobox = Combobox(self.root, values=created_users)
 
         self.password_entry = Entry(self.root, show="*")
-        
+
         connect_button = Button(
             self.root,
             text="Połącz",
@@ -66,19 +66,18 @@ class Settings:
         close_button.pack(pady=5)
 
     def connect(self):
-        MessagingService.smtp_data.email = self.email_combobox.get()
-        MessagingService.smtp_data.password = self.password_entry.get()
+        User.all_instances._email = self.email_combobox.get()
+        user.password = self.password_entry.get()
 
-        # TODO: połączenie z pocztą
-        email_settings = discover_email_settings(MessagingService.smtp_data.email, MessagingService.smtp_data.password)
+        email_settings = user.discover_email_settings(user._email, user._password)
         print(email_settings)
-        MessagingService.smtp_data.smtp_host = email_settings['smtp']['hostname']
-        print(MessagingService.smtp_data.smtp_host)
-        MessagingService.smtp_data.smtp_port = email_settings['smtp']['port']
-        print(MessagingService.smtp_data.smtp_port)
-        MessagingService.smtp_data.smtp_security = email_settings['smtp']['socket_type']
-        print(MessagingService.smtp_data.smtp_security)
-        messagebox.showinfo("Połączenie", f"Połączono z {MessagingService.smtp_data.email}")
+        user._smtp_host = email_settings['smtp']['hostname']
+        print(user._smtp_host)
+        user._smtp_port = email_settings['smtp']['port']
+        print(user._smtp_port)
+        user._smtp_socket_type = email_settings['smtp']['socket_type']
+        print(user._smtp_socket_type)
+        messagebox.showinfo("Połączenie", f"Połączono z {user._email}")
 
     def change_email(self):
         new_email = simpledialog.askstring(
