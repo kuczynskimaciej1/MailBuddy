@@ -10,6 +10,7 @@ from .GroupEditor import GroupEditor
 from .Settings import Settings
 from .TemplateEditor import TemplateEditor
 from MessagingService.senders import ISender
+from sys import exit
 #import MessagingService.smtp_data
 #from MessagingService.ethereal_demo import send_email
 
@@ -75,6 +76,7 @@ class AppUI():
     def __exit_clicked(self) -> NoReturn | None:
         # Wait for saving objects to DB
         print("Exiting")
+        self.root.destroy()
         exit()
 
     def update_templates(self):
