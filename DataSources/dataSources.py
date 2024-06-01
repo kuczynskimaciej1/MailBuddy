@@ -40,7 +40,6 @@ class IDataSource():
         """
         raise RuntimeError
 
-
 class DatabaseHandler(IDataSource):
     def __init__(self, connectionString: str, tableCreators: Iterable[IModel],
                  engine: SupportedDbEngines = SupportedDbEngines.SQLite) -> None:

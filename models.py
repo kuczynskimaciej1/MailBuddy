@@ -11,6 +11,8 @@ import requests
 import smtplib
 import imaplib
 import xml.etree.ElementTree as ET
+#from globaldb import db
+#from DataSources.dataSources import IDataSource
 
 
 __all__ = ["Template", "Attachment", "Contact", "User", "Message", "Group"]
@@ -22,6 +24,7 @@ class IModel(declarative_base()):
     addQueued: list[IModel] = []
     updateQueued: list[IModel] = []
     retrieveAdditionalQueued: list[IModel] = []
+    db = None
 
     @staticmethod
     def queueSave(child):
@@ -43,20 +46,19 @@ class IModel(declarative_base()):
         
     @staticmethod
     def pushQueuedInstances():
-        global db
         if len(IModel.addQueued) > 0:
             for o in IModel.addQueued:
-                db.Save(o)
+                IModel.db.Save(o)
                 IModel.addQueued.remove(o)
         if len(IModel.updateQueued) > 0:
             for o in IModel.updateQueued:
-                db.Update(o)
+                IModel.db.Update(o)
                 IModel.updateQueued.remove(o)
         if len(IModel.retrieveAdditionalQueued) > 0:
             for o in IModel.retrieveAdditionalQueued:
                 if isinstance(o, Template):
                     if o.dataimport_id:
-                        di = db.GetData(DataImport, id=o.dataimport_id)
+                        di = IModel.db.GetData(DataImport, id=o.dataimport_id)
                         o.dataimport = di[0]
                 IModel.retrieveAdditionalQueued.remove(o)
        
@@ -592,6 +594,14 @@ class Message(IModel):
             data = self.template.dataimport.GetRow(self.email)
         body: str = self.template.FillGaps(data)
         return body
+    
+    #def prepareMail(self) -> str:
+        #pathToXlsx = self.template.dataimport._localPath
+        #print(pathToXlsx)
+
+        #template = self.template._content
+
+        #return body
     
 
 

@@ -8,7 +8,8 @@ from Triggers.triggers import ITrigger
 from Interface.AppUI import AppUI
 from DataSources.dataSources import DatabaseHandler, GapFillSource, IDataSource
 from additionalTableSetup import GroupContacts, MessageAttachment, SendAttempt
-from MessagingService.smtp_data import smtp_security, smtp_host, smtp_port
+#from MessagingService.smtp_data import smtp_security, smtp_host, smtp_port
+#from globaldb import db
 
 mocking_enabled = False
 mock_name = "Russ"
@@ -21,8 +22,6 @@ mock_pwd = "QQcGx1RmfVkaEMjzqZ"
 dbname = "localSQLite.sqlite3"
 dbURL = f"sqlite:///{dbname}"
 tables = [Template, DataImport, Attachment, Contact, User, ITrigger, Message, Group, MessageAttachment, SendAttempt, GroupContacts]
-global db
-db: IDataSource = None
 
     
 if __name__ == "__main__":
@@ -35,8 +34,8 @@ if __name__ == "__main__":
     
     ui = AppUI()
     ui.prepareInterface()
-    
-    
+
+    ui.setDb(db)
     
     _contact_fields = GapFillSource()
     

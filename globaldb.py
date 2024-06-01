@@ -1,0 +1,2 @@
+#global db
+#db = None

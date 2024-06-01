@@ -32,7 +32,8 @@ class SMTPSender(ISender):
         emailsSent = 0
         for contact in g.contacts:
             message = Message(t, contact)
-            server.sendmail(u._email, contact.email, message.getParsedBody())
+            #server.sendmail(u._email, contact.email, message.getParsedBody())
+            server.sendmail(u._email, contact.email, message.prepareMail())
             emailsSent += 1
         server.quit()
         print(f"Sent {emailsSent}")
