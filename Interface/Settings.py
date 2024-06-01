@@ -15,44 +15,41 @@ from DataSources.dataSources import GapFillSource
 #import MessagingService.smtp_data
 
 
-class Settings:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Ustawienia")
-        self.root.configure(bg="lightblue")
-        self.root.geometry("400x400")
+class Settings(Toplevel):
+    def __init__(self, parent: Toplevel | Tk):
+        super().__init__(parent.root)
+        self.parent = parent
+        self.title("Ustawienia")
+        self.configure(bg="lightblue")
+        self.geometry("400x400")
 
     def prepareInterface(self):
-        created_users = []
-        for u in User.all_instances:
-            created_users.append(u._email)
-        
         label = Label(
-            self.root,
+            self,
             text="MailBuddy",
             bg="lightblue",
             font=("Helvetica", 24))
 
-        self.email_combobox = Combobox(self.root, values=created_users)
+        self.email_combobox = Combobox(self)
 
-        self.password_entry = Entry(self.root, show="*")
+        self.password_entry = Entry(self, show="*")
 
         connect_button = Button(
-            self.root,
+            self,
             text="Połącz",
             bg="lightblue",
             fg="black",
             command=self.connect)
         
         change_email_button = Button(
-            self.root,
+            self,
             text="Dodaj nowy adres mailowy",
             bg="lightblue",
             fg="black",
             command=self.change_email)
         
         close_button = Button(
-            self.root,
+            self,
             text="Wyłącz ustawienia",
             bg="lightblue",
             fg="black",
@@ -64,12 +61,30 @@ class Settings:
         connect_button.pack(pady=5)
         change_email_button.pack(pady=5)
         close_button.pack(pady=5)
+        self.updateCombobox()
+
+    def updateCombobox(self):
+        created_users = []
+        for u in User.all_instances:
+            created_users.append(u._email)
+        
+        self.email_combobox['values'] = created_users
+
+    def getUser(self):
+        email = self.email_combobox.get()
+        password = self.password_entry.get()
+        
+        for u in User.all_instances:
+            if u.email == email and u.password == password:
+                u.selected = True
+                u.password = password
+                return u
+        return User(_email=email, _password=password, _selected=True)
 
     def connect(self):
-        User.all_instances._email = self.email_combobox.get()
-        user.password = self.password_entry.get()
-
-        email_settings = user.discover_email_settings(user._email, user._password)
+        user = self.getUser()
+        
+        email_settings = user.discover_email_settings()
         print(email_settings)
         user._smtp_host = email_settings['smtp']['hostname']
         print(user._smtp_host)
@@ -82,6 +97,10 @@ class Settings:
     def change_email(self):
         new_email = simpledialog.askstring(
             "Zmień adres e-mail", "Dodaj nowy adres e-mail")
+        if not new_email:
+            return
+        
+        User(_email=new_email)
         if new_email:
             self.email_combobox.set(new_email)
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 from email.mime.multipart import MIMEMultipart
 from openpyxl import load_workbook
+from xml.etree.ElementTree import ParseError
 from sqlalchemy import BOOLEAN, Column, ForeignKey, Integer, String, LargeBinary, TIMESTAMP, func
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -68,6 +69,26 @@ class DataImport(IModel):
             for idx, c in enumerate(columns):
                 result[c] = dataPreviewRow[idx]
         return result if len(result) > 0 else None
+    
+    def GetRow(self, email: str) -> dict[str, str]:
+        workbook = load_workbook(self.localPath, read_only=True)
+        result = dict()
+        for sheet in workbook:
+            first_row = next(sheet.iter_rows(values_only=True))
+            if "Email" not in first_row:
+                continue
+            emailColumnIdx = first_row.index("Email")
+            
+            for row in sheet.iter_rows(min_row=2, values_only=True):
+                if row[emailColumnIdx] == email:
+                    for idx, column in enumerate(first_row):
+                        result[column] = row[idx]
+                        break
+                    break
+            break
+        if len(result) == 0:
+            raise AttributeError("Nie znaleziono odpowiadającej linijki w pliku z danymi do uzupełnienia")
+        return result
             
 
 # region Properties
@@ -135,6 +156,23 @@ class Template(IModel):
     
     def __repr__(self):
         return f"Template(_name={self.name}, _content={self.content}, _id={self.id})"
+    
+    def FillGaps(self, fillData: dict[str, str]) -> str:
+        html_text = self.content
+
+        span_text = '<span>' # TODO korzystać z tej metody do każdego generowania podglądu
+        pattern = r"<MailBuddyGap>\s*([^<>\s][^<>]*)\s*</MailBuddyGap>"
+        matches = re.findall(pattern, html_text)
+        
+        for m in matches:
+            try:
+                preview_text = fillData[m]
+            except KeyError as ke:
+                raise AttributeError("Nie znaleziono odpowiadającej wartości dla luki", ke)
+            tmp = html_text.replace(f"<MailBuddyGap>{m}</MailBuddyGap>", span_text + preview_text + "</span>")
+            if tmp:
+                html_text = tmp
+        return html_text
 
 # region Properties
     @hybrid_property
@@ -330,15 +368,43 @@ class User(IModel):
     }
 }
     
-    _smtp_host = ""
-    _smtp_port = ""
-    _smtp_socket_type = "SSL"
+    def __init__(self, **kwargs) -> None:
+        self.email = kwargs.pop("_email")
+        self.password = kwargs.pop("_password", None)
+        self.contact = self.getExistingContact(kwargs.pop("_first_name", None), kwargs.pop("_last_name", None))
+        self.selected = kwargs.pop("_selected", False)
+        self._smtp_host = ""
+        self._smtp_port = ""
+        self._smtp_socket_type = "SSL"
+        User.all_instances.append(self)
+        IModel.queueSave(child=self)
+        
+# region Properties
+    @hybrid_property
+    def email(self):
+        return self._email
 
+    @email.setter
+    def email(self, newValue: str):
+        self._email = newValue
+        
+    @hybrid_property
+    def selected(self) -> bool:
+        return self._selected
 
+    @selected.setter
+    def selected(self, newValue: bool):
+        if newValue == True:
+            for u in User.all_instances:
+                u._selected = False
+        self._selected = newValue
+#endregion
+
+    @staticmethod
     def get_domain(email):
         return email.split('@')[1]
 
-
+    @staticmethod
     def get_mx_records(domain):
         try:
             answers = resolve(domain, 'MX')
@@ -349,6 +415,7 @@ class User(IModel):
             return []
 
 
+    @staticmethod
     def get_autodiscover_settings(domain):
         try:
             url = f'https://autoconfig.{domain}/mail/config-v1.1.xml'
@@ -365,9 +432,13 @@ class User(IModel):
         return None
 
 
-
+    @staticmethod
     def parse_email_settings(xml_data):
-        tree = ET.ElementTree(ET.fromstring(xml_data))
+        try:
+            tree = ET.ElementTree(ET.fromstring(xml_data))
+        except ParseError:
+            raise AttributeError("Zwrócono niepoprawny settings XML")
+        
         root = tree.getroot()
         email_provider = root.find('emailProvider')
 
@@ -428,43 +499,29 @@ class User(IModel):
             return False
     
 
-    def discover_email_settings(self, email, password):
-        domain = self.get_domain(email)
+    def discover_email_settings(self):
+        domain = User.get_domain(self.email)
+        settings_xml = User.get_autodiscover_settings(domain)
+        if not settings_xml:
+            raise AttributeError("Nie znaleziono opcji dla podanej domeny")
         
-        mx_records = self.get_mx_records(domain)
-        print(mx_records)
-        if mx_records:
-            pass
-        
-        settings_xml = self.get_autodiscover_settings(domain)
-        if settings_xml:
-            settings_xml = self.parse_email_settings(settings_xml)
-            pass
+        # try:
+        settings_xml = User.parse_email_settings(settings_xml)
+        # except 
         
         if domain in self.default_settings:
             settings_xml = self.default_settings[domain]
             print(settings_xml)
             return settings_xml
-        else:
-            print("No settings found for this domain.")
         
-        if self.test_imap_connection(settings_xml['imap'], email, password) and self.test_smtp_connection(settings_xml['smtp'], email, password):
-            print("Check ok")
-            print(settings_xml)
-            return settings_xml
+        if self.test_imap_connection(settings_xml['imap'], self.email, self.password)  \
+            and self.test_smtp_connection(settings_xml['smtp'], self.email, self.password):
+                print("Check ok")
+                print(settings_xml)
+                return settings_xml
         
-        else:
-            print("Failed to connect with discovered settings.")
-            return None
+        raise AttributeError("Nie znaleziono opcji dla podanej domeny")
     
-
-    def __init__(self, **kwargs) -> None:
-        self._email = kwargs.pop("_email")
-        self.password = kwargs.pop("_password", None)
-        self.contact = self.getExistingContact(kwargs.pop("_first_name", None), kwargs.pop("_last_name", None))
-        self._selected = kwargs.pop("_selected", None)
-        User.all_instances.append(self)
-        IModel.queueSave(child=self)
     
     @staticmethod
     def GetCurrentUser() -> User | None:
@@ -480,7 +537,7 @@ class User(IModel):
         return Contact(_first_name=first_name, _last_name=last_name, _email=self._email)
 
 
-class Message(IModel, MIMEMultipart):
+class Message(IModel):
     all_instances = []
     __tablename__ = "Messages"
 
@@ -495,12 +552,23 @@ class Message(IModel, MIMEMultipart):
     # contact = relationship("Contact")
     # template = relationship("Template")
 
-    def __init__(self, recipient: Contact,
-                 att: list[Attachment] = None) -> None:
+    def __init__(self, template: Template,  recipient: Contact,
+                 att: list[Attachment] = []) -> None:
         self.recipient = recipient
+        self.email = recipient.email
         self.att = att
+        self.template = template
+        self.template_id = template.id
         Message.all_instances.append(self)
         IModel.queueSave(child=self)
+        
+    def getParsedBody(self) -> str:
+        data = dict()
+        if self.template.dataimport:
+            data = self.template.dataimport.GetRow(self.email)
+        body: str = self.template.FillGaps(data)
+        return body
+    
 
 
 class Group(IModel):

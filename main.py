@@ -69,8 +69,9 @@ if __name__ == "__main__":
     sender = SMTPSender()
     ui.setSender(sender)
 
-    user = User(_email="russ.connelly30@ethereal.email", _password="QQcGx1RmfVkaEMjzqZ", _first_name="Russ", _last_name="Connelly", _selected=True)
-    ui.setUser(user)
+    # user = 
+    # User(_email="russ.connelly30@ethereal.email", _password="QQcGx1RmfVkaEMjzqZ", _first_name="Russ", _last_name="Connelly", _selected=True)
+    # ui.setUser(user)
     
     ui.add_periodic_task(5000, pushQueuedInstances)
     ui.run()

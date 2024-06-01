@@ -42,13 +42,14 @@ class AppUI():
 
 
     def populateInterface(self) -> None:
-        modelType_func_mapper = {
-            Template: self.add_template,
-            Group: self.add_group
-            }
+        self.update_templates()
+        self.update_groups()
+        # modelType_func_mapper = {
+        #     Group: self.update_groups
+        #     }
         
-        for (modelType, ui_func) in modelType_func_mapper.items():
-            ui_func(modelType.all_instances)
+        # for (modelType, ui_func) in modelType_func_mapper.items():
+        #     ui_func(modelType.all_instances)
 
     def setSender(self, new_sender: ISender):
         self.sender = new_sender
@@ -72,21 +73,23 @@ class AppUI():
         print("Exiting")
         exit()
 
-    def add_template(self, content: Template | Iterable[Template]):
-        if isinstance(content, Template):
-            if content not in self.szablony:
-                self.szablony.append(content)
-        else:
-            [self.szablony.append(i)
-             for i in content if i not in self.szablony]
+    def update_templates(self):
+        # if isinstance(content, Template):
+        #     if content not in self.szablony:
+        #         self.szablony.append(content)
+        # else:
+        #     [self.szablony.append(i)
+        #      for i in content if i not in self.szablony]
+        self.szablony = Template.all_instances
         self.__update_listbox(self.template_listbox, self.szablony)
 
-    def add_group(self, g: Group | Iterable[Group]):
-        if isinstance(g, Group):
-            if g not in self.grupy:
-                self.grupy.append(g)
-        else:
-            [self.grupy.append(i) for i in g if i not in self.grupy]
+    def update_groups(self):
+        # if isinstance(g, Group):
+        #     if g not in self.grupy:
+        #         self.grupy.append(g)
+        # else:
+        #     [self.grupy.append(i) for i in g if i not in self.grupy]
+        self.grupy = Group.all_instances
         self.__update_listbox(self.grupy_listbox, self.grupy)
 
     def clearData(self):
@@ -113,7 +116,8 @@ class AppUI():
             messagebox.showerror("Error", "Wybierz szablon!")
             return
         
-        self.sender.Send(self.selected_mailing_group, self.selected_template_group, self.user)
+        u = User.GetCurrentUser()
+        self.sender.Send(self.selected_mailing_group, self.selected_template_group, u)
         #send_email()
 
     def __template_selection_changed(self, _event):
@@ -204,7 +208,13 @@ class AppUI():
         selected_index = self.grupy_listbox.curselection()
         if selected_index:
             selected_group = self.grupy_listbox.get(selected_index)
-            self.selected_mailing_group = selected_group
+            nameidx = selected_group.find(": ") + 1 # do ujęcia w tym spacji 
+            selected_group = selected_group[nameidx + 1::] # dodawanie do pominięcia spacji
+            for g in Group.all_instances:
+                if g.name == selected_group:
+                    self.selected_mailing_group = g
+                    return 
+            raise LookupError(f"Nie znaleziono grupy {selected_group}")
 
 
     def __create_template_pane(self):
@@ -231,8 +241,12 @@ class AppUI():
     def __assign_template(self):
         selected_index = self.template_listbox.curselection()
         if selected_index: 
-            selected_group = self.template_listbox.get(selected_index)
-            self.selected_template_group = selected_group
+            selected_template = self.template_listbox.get(selected_index)
+            for t in Template.all_instances:
+                if t.name == selected_template:
+                    self.selected_template_group = t
+                    return
+            raise LookupError(f"Nie znaleziono szablonu {selected_template}")
 
 
     def __create_mail_input_pane(self):
@@ -260,10 +274,9 @@ class AppUI():
         self.template_window.prepareInterface()
 
     def __openSettings_clicked(self):
-        root = Tk()  # Otwórz ponownie okno logowania
-        settings = Settings(root) #USER
+        settings = Settings(self)
         settings.prepareInterface()
-        root.mainloop()
+        # root.mainloop()
 
 
 
