@@ -613,11 +613,13 @@ class Group(IModel):
     _name = Column("name", String(100), nullable=True)
     
     def __init__(self, **kwargs):
+        self.obj_creation = True
         self.id: int = kwargs.pop('_id', None)
         self.name: str = kwargs.pop('_name', "")
         self.contacts: list[Contact] = kwargs.pop("_contacts", [])
         Group.all_instances.append(self)
         IModel.queueSave(self)
+        self.obj_creation = False
         
     @hybrid_property
     def name(self):
@@ -626,7 +628,8 @@ class Group(IModel):
     @name.setter
     def name(self, value: str | None):
         self._name = value
-        IModel.queueToUpdate(self)
+        if not self.obj_creation:
+            IModel.queueToUpdate(self)
     
     def __str__(self):
         return f"{self.id}: {self.name}"
@@ -660,5 +663,6 @@ class Group(IModel):
     @name.setter
     def name(self, value: str | None):
         self._name = value
-        IModel.queueToUpdate(self)
+        if not self.obj_creation:
+            IModel.queueToUpdate(self)
 #endregion
