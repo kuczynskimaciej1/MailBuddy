@@ -58,10 +58,6 @@ class AppUI():
     def setUser(self, current_user: User):
         self.user = current_user
 
-    def setDb(self, new_db):
-        #AppUI.db = new_db
-        IModel.db = new_db
-
     def add_periodic_task(self, period: int, func: Callable):
         # TODO można poprawić żeby się odpalało tylko przy dodaniu obiektu,
         # przemyśleć

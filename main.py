@@ -31,6 +31,7 @@ def on_closing():
 if __name__ == "__main__":
     db = DatabaseHandler(dbURL, tables)
     GroupController.setDbHandler(db)
+    IModel.db = db
     
     if db.checkIntegrity():
         print("Database intact, proceeding.")
@@ -41,7 +42,6 @@ if __name__ == "__main__":
     
     ui = AppUI()
     ui.prepareInterface()
-    ui.setDb(db)
     
     
     if (mocking_enabled):
