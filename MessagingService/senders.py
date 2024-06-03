@@ -1,4 +1,6 @@
 from abc import ABCMeta, abstractmethod
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from smtplib import *
 from models import Group, Template, User, Message
 
@@ -30,10 +32,17 @@ class SMTPSender(ISender):
         server.login(u._email, u.password)
         print("logged in successfully")
         emailsSent = 0
+        print(f"Sending {t.name} to {len(g.contacts)} contacts")
         for contact in g.contacts:
+            print(f"Sending do {contact.email}")
             message = Message(t, contact)
-            #server.sendmail(u._email, contact.email, message.getParsedBody())
-            server.sendmail(u._email, contact.email, message.prepareMail())
+            mimemsg = MIMEMultipart("alternative")
+            mimemsg["From"] = u._email
+            mimemsg["To"] = contact.email
+            mimemsg["Subject"] = "MailBuddy mailing"  # TODO Temat maila w TemplateEditor, aby dało się go parametryzować
+            xd = MIMEText(message.getParsedBody(), "html")
+            mimemsg.attach(xd)
+            server.send_message(mimemsg)
             emailsSent += 1
         server.quit()
         print(f"Sent {emailsSent}")

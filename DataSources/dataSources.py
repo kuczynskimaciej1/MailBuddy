@@ -1,10 +1,11 @@
 from __future__ import annotations
-from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable
 from enum import Enum
+from .dataSourceAbs import IDataSource
 from pandas import read_csv, read_excel, DataFrame
 from additionalTableSetup import GroupContacts
-from models import DataImport, IModel, Contact
+from group_controller import GroupController
+from models import DataImport, Group, IModel, Contact, Template
 import sqlalchemy as alchem
 import sqlalchemy.orm as orm
 from sqlalchemy.exc import IntegrityError
@@ -12,33 +13,6 @@ from sqlalchemy.ext.hybrid import hybrid_property
 
 class SupportedDbEngines(Enum):
     SQLite=1
-
-class IDataSource():
-    current_instance = None
-    
-    @classmethod
-    def __subclasshook__(cls, subclass: type) -> bool:
-        return (hasattr(subclass, 'GetData') and 
-                callable(subclass.GetData) and
-                hasattr(subclass, 'checkIntegrity') and 
-                callable(subclass.checkIntegrity) and
-                hasattr(subclass, 'LoadSavedState') and 
-                callable(subclass.LoadSavedState)
-                )
-        
-    @abstractmethod
-    def GetData(self):
-        raise RuntimeError
-    
-    @abstractmethod
-    def checkIntegrity(self):
-        raise RuntimeError
-    
-    @abstractmethod
-    def LoadSavedState(self):
-        """Collect all data saved in data source and instantiate adjacent model objects
-        """
-        raise RuntimeError
 
 class DatabaseHandler(IDataSource):
     def __init__(self, connectionString: str, tableCreators: Iterable[IModel],
@@ -118,6 +92,20 @@ class DatabaseHandler(IDataSource):
                     print(e)
                     continue
         IModel.run_loading = False
+        self.runAdditionalBindings()
+        
+    
+    def runAdditionalBindings(self):
+        for g in Group.all_instances:
+            g.contacts = GroupController.get_contacts(g)
+        
+        for t in Template.all_instances:
+            if t.dataimport_id != None:
+                for di in DataImport.all_instances:
+                    if t.dataimport_id == di.id:
+                        t.dataimport = di
+                        break # TODO w razie dodanie większej ilości di - templatek
+                    
 
     def Update(self, obj: IModel):
         Session = orm.sessionmaker(bind=self.dbEngineInstance)
@@ -164,7 +152,6 @@ class XLSXHandler(IDataSource):
             print("Błąd podczas wczytywania pliku XLSX:", e)
             return None
 
-
 class CSVHandler(IDataSource):
     def __init__(self, path: str) -> None:
         self.file_path = path
@@ -187,9 +174,10 @@ class GapFillSource():
     all_instances: list[GapFillSource] = []
     
     def __init__(self, source: IDataSource | IModel = Contact) -> None:
-        if isinstance(source, IDataSource):
-            self.iData: IDataSource = source
-        elif isinstance(source, DataImport) or isinstance(source, list):
+        # if isinstance(source, IDataSource):
+        #     self.iData: IDataSource = source
+        # el
+        if isinstance(source, DataImport) or isinstance(source, list):
             self.model_source: IModel = source
         elif issubclass(source, IModel):
             self.model_source: IModel = source
@@ -200,25 +188,28 @@ class GapFillSource():
         self.get_possible_values()
         
     def get_possible_values(self):
-        if hasattr(self, "iData"):
-            idata_type = type(self.iData)
-            match(idata_type):
-                case type(DatabaseHandler):
-                    # openTablePicker()
-                    pass
-                case type(XLSXHandler):
-                    # openSheetPicker()
-                    pass
-                case type(CSVHandler):
-                    # openCsvPicker()
-                    pass
-        elif hasattr(self, "model_source"):
+        # if hasattr(self, "iData"):
+        #     idata_type = type(self.iData)
+        #     match(idata_type):
+        #         case type(DatabaseHandler):
+        #             # openTablePicker()
+        #             pass
+        #         case type(XLSXHandler):
+        #             # openSheetPicker()
+        #             pass
+        #         case type(CSVHandler):
+        #             # openCsvPicker()
+        #             pass
+        # el
+        if hasattr(self, "model_source"):
             if self.model_source == Contact:
                 self.possible_values = { name: attr for name, attr in Contact.__dict__.items() if isinstance(attr, hybrid_property) and attr != "all_instances" }
             elif isinstance(self.model_source, DataImport):
                 self.possible_values = self.model_source.getColumnPreview()
             else:
                 raise AttributeError(f"{type(self.model_source)} isn't supported")
+        else:
+            raise AttributeError(f"Incorrectly created GapFillSource, expected 'model_source'={self.model_source} to be present.")
 
     @staticmethod
     def getPreviewText(searched: str) -> str | None:
