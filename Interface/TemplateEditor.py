@@ -104,7 +104,8 @@ class TemplateEditor(Toplevel):
 
     def __save_template_clicked(self, template_name: str, template_content: str) -> None:
         if template_name != "" and template_content != "":
-            self.currentTemplate = Template(_name=template_name, _content=template_content)
+            self.currentTemplate.name = template_name 
+            self.currentTemplate.content = template_content
             self.parent.update_templates()
         self.destroy()
 

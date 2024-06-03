@@ -79,6 +79,7 @@ class DataImport(IModel):
         self.content = kwargs.pop('_content', None)
         DataImport.all_instances.append(self)
         IModel.queueSave(child=self)
+        print(f"Utworzono {type(self)}")
         
     def getColumnPreview(self) -> dict | None:
         workbook = load_workbook(self.localPath, read_only=True)
@@ -95,23 +96,23 @@ class DataImport(IModel):
         return result if len(result) > 0 else None
     
     def GetRow(self, email: str) -> dict[str, str]:
-        workbook = load_workbook(self.localPath, read_only=True)
-        result = dict()
-        for sheet in workbook:
-            first_row = next(sheet.iter_rows(values_only=True))
-            if "Email" not in first_row:
-                continue
-            emailColumnIdx = first_row.index("Email")
-            
-            for row in sheet.iter_rows(min_row=2, values_only=True):
-                if row[emailColumnIdx] == email:
-                    for idx, column in enumerate(first_row):
-                        result[column] = row[idx]
-                    break
-            break
-        if len(result) == 0:
-            raise AttributeError("Nie znaleziono odpowiadającej linijki w pliku z danymi do uzupełnienia")
-        workbook.close()
+        with open(self.localPath) as r:
+            workbook = load_workbook(r, read_only=True)
+            result = dict()
+            for sheet in workbook:
+                first_row = next(sheet.iter_rows(values_only=True))
+                if "Email" not in first_row:
+                    continue
+                emailColumnIdx = first_row.index("Email")
+                
+                for row in sheet.iter_rows(min_row=2, values_only=True):
+                    if row[emailColumnIdx] == email:
+                        for idx, column in enumerate(first_row):
+                            result[column] = row[idx]
+                        break
+                break
+            if len(result) == 0:
+                raise AttributeError("Nie znaleziono odpowiadającej linijki w pliku z danymi do uzupełnienia")
         return result
             
 
@@ -166,6 +167,7 @@ class Template(IModel):
     # dataImportRel = relationship(DataImport, foreign_keys=[DataImport._id])
     
     def __init__(self, **kwargs) -> None:
+        self.obj_creation = True
         self.id: int = kwargs.pop('_id', None)
         self.name: str = kwargs.pop('_name', None)
         self.content: object = kwargs.pop('_content', None)
@@ -173,6 +175,8 @@ class Template(IModel):
         self.dataimport_id: int = kwargs.pop("_dataimport_id", None)
         Template.all_instances.append(self)
         IModel.queueSave(child=self)
+        self.obj_creation = False
+        print(f"Utworzono {type(self)}")
 
 
     def __str__(self) -> str:
@@ -223,17 +227,20 @@ class Template(IModel):
     @name.setter
     def name(self, value: str | None):
         self._name = value
-        IModel.queueToUpdate(self)
+        if not self.obj_creation:
+            IModel.queueToUpdate(self)
 
     @content.setter
     def content(self, value: str | None):
         self._content = value
-        IModel.queueToUpdate(self)
+        if not self.obj_creation:
+            IModel.queueToUpdate(self)
         
     @dataimport_id.setter
     def dataimport_id(self, value: int | None):
         self._dataimport_id = value
-        IModel.queueToUpdate(self)
+        if not self.obj_creation:
+            IModel.queueToUpdate(self)
         IModel.retrieveAdditionalData(self)
 #endregion
 
@@ -253,6 +260,7 @@ class Attachment(IModel):
         self.type = type
         Attachment.all_instances.append(self)
         IModel.queueSave(child=self)
+        print(f"Utworzono {type(self)}")
 
     # def prepareAttachment(self):
     #     att = MIMEApplication(open(self.path, "rb").read(), _subtype=self.type)
@@ -283,6 +291,7 @@ class Contact(IModel):
         self.last_name = kwargs.pop("_last_name", "")
         Contact.all_instances.append(self)
         IModel.queueSave(child=self)
+        print(f"Utworzono {type(self)}")
 
     def __str__(self) -> str:
         return f"{self.first_name} {self.last_name}, <{self.email}>"
@@ -402,6 +411,7 @@ class User(IModel):
         self._smtp_socket_type = "SSL"
         User.all_instances.append(self)
         IModel.queueSave(child=self)
+        print(f"Utworzono {type(self)}")
         
 # region Properties
     @hybrid_property
@@ -585,6 +595,7 @@ class Message(IModel):
         self.template_id = template.id
         Message.all_instances.append(self)
         IModel.queueSave(child=self)
+        print(f"Utworzono {type(self)}")
         
     def getParsedBody(self) -> str:
         data = dict()
@@ -598,7 +609,7 @@ class Group(IModel):
     all_instances: list[Group] = []
     __tablename__ = "Groups"
     
-    _id = Column("id", Integer, primary_key=True)
+    _id = Column("id", Integer, primary_key=True, autoincrement="auto")
     _name = Column("name", String(100), nullable=True)
     
     def __init__(self, **kwargs):
@@ -644,10 +655,7 @@ class Group(IModel):
     
     @id.setter
     def id(self, newValue: int):
-        if newValue:
-            self._id = newValue
-        else:
-            self._id = max((i.id for i in Group.all_instances), default=-1) + 1
+        self._id = newValue
 
     @name.setter
     def name(self, value: str | None):

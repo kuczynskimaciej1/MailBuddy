@@ -78,21 +78,10 @@ class AppUI():
         exit()
 
     def update_templates(self):
-        # if isinstance(content, Template):
-        #     if content not in self.szablony:
-        #         self.szablony.append(content)
-        # else:
-        #     [self.szablony.append(i)
-        #      for i in content if i not in self.szablony]
         self.szablony = Template.all_instances
         self.__update_listbox(self.template_listbox, self.szablony)
 
     def update_groups(self):
-        # if isinstance(g, Group):
-        #     if g not in self.grupy:
-        #         self.grupy.append(g)
-        # else:
-        #     [self.grupy.append(i) for i in g if i not in self.grupy]
         self.grupy = Group.all_instances
         self.__update_listbox(self.grupy_listbox, self.grupy)
 
