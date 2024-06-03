@@ -82,21 +82,22 @@ class DataImport(IModel):
         print(f"Utworzono {type(self)}")
         
     def getColumnPreview(self) -> dict | None:
-        workbook = load_workbook(self.localPath, read_only=True)
-        result = dict()
-        for sheet in workbook:
-            first_row = next(sheet.iter_rows(values_only=True))
-            if "Email" not in first_row:
-                continue
-            
-            columns = first_row
-            dataPreviewRow = next(sheet.iter_rows(min_row=2, values_only=True))
-            for idx, c in enumerate(columns):
-                result[c] = dataPreviewRow[idx]
+        with open(self.localPath, 'br') as r:
+            workbook = load_workbook(r, read_only=True)
+            result = dict()
+            for sheet in workbook:
+                first_row = next(sheet.iter_rows(values_only=True))
+                if "Email" not in first_row:
+                    continue
+                
+                columns = first_row
+                dataPreviewRow = next(sheet.iter_rows(min_row=2, values_only=True))
+                for idx, c in enumerate(columns):
+                    result[c] = dataPreviewRow[idx]
         return result if len(result) > 0 else None
     
     def GetRow(self, email: str) -> dict[str, str]:
-        with open(self.localPath) as r:
+        with open(self.localPath, 'br') as r:
             workbook = load_workbook(r, read_only=True)
             result = dict()
             for sheet in workbook:
@@ -613,11 +614,13 @@ class Group(IModel):
     _name = Column("name", String(100), nullable=True)
     
     def __init__(self, **kwargs):
+        self.obj_creation = True
         self.id: int = kwargs.pop('_id', None)
         self.name: str = kwargs.pop('_name', "")
         self.contacts: list[Contact] = kwargs.pop("_contacts", [])
         Group.all_instances.append(self)
         IModel.queueSave(self)
+        self.obj_creation = False
         
     @hybrid_property
     def name(self):
@@ -626,7 +629,8 @@ class Group(IModel):
     @name.setter
     def name(self, value: str | None):
         self._name = value
-        IModel.queueToUpdate(self)
+        if not self.obj_creation:
+            IModel.queueToUpdate(self)
     
     def __str__(self):
         return f"{self.id}: {self.name}"
@@ -660,5 +664,6 @@ class Group(IModel):
     @name.setter
     def name(self, value: str | None):
         self._name = value
-        IModel.queueToUpdate(self)
+        if not self.obj_creation:
+            IModel.queueToUpdate(self)
 #endregion
