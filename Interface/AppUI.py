@@ -120,10 +120,10 @@ class AppUI():
             self.showTemplate(self.szablony[selected[0]])
 
     def __group_doubleclicked(self, _event):
-        selected = self.grupy_listbox.curselection()
+        selected: int = self.grupy_listbox.curselection()
         if len(selected) > 0:
-            elem = int(self.grupy_listbox.get(selected[0]).split(':')[0])
-            self.show_group_window(self.grupy[elem])
+            g: Group = self.grupy[selected[0]]
+            self.show_group_window(g)
 
     def __group_selection_changed(self, _event):
         selected: int = self.grupy_listbox.curselection()
