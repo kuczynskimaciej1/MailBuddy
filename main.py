@@ -36,7 +36,6 @@ if __name__ == "__main__":
         print("Database intact, proceeding.")
     else:
         print("Database integrity check failed. Exiting.")
-        exit()
 
     db.LoadSavedState()
     
@@ -44,7 +43,6 @@ if __name__ == "__main__":
     ui.prepareInterface()
     ui.setDb(db)
     
-    _contact_fields = GapFillSource()
     
     if (mocking_enabled):
         try:    
