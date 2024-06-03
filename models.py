@@ -1,10 +1,18 @@
 from __future__ import annotations
 from email.mime.multipart import MIMEMultipart
 from openpyxl import load_workbook
+from xml.etree.ElementTree import ParseError
 from sqlalchemy import BOOLEAN, Column, ForeignKey, Integer, String, LargeBinary, TIMESTAMP, func
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.ext.hybrid import hybrid_property
 import re
+from dns.resolver import resolve
+import requests
+import smtplib
+import imaplib
+import xml.etree.ElementTree as ET
+#from globaldb import db
+#from DataSources.dataSources import IDataSource
 
 
 __all__ = ["Template", "Attachment", "Contact", "User", "Message", "Group"]
@@ -16,23 +24,45 @@ class IModel(declarative_base()):
     addQueued: list[IModel] = []
     updateQueued: list[IModel] = []
     retrieveAdditionalQueued: list[IModel] = []
+    db = None
 
     @staticmethod
     def queueSave(child):
         if not IModel.run_loading:
             IModel.addQueued.append(child)
+        IModel.pushQueuedInstances()
     
     @staticmethod
     def queueToUpdate(child):
         if not IModel.run_loading:
             IModel.updateQueued.append(child)
+        IModel.pushQueuedInstances()
        
     @staticmethod
     def retrieveAdditionalData(child):
-        if isinstance(child, Template):
+        if isinstance(child, Template) or isinstance(child, Group):
             IModel.retrieveAdditionalQueued.append(child)
-
-
+        IModel.pushQueuedInstances()
+        
+    @staticmethod
+    def pushQueuedInstances():
+        if len(IModel.addQueued) > 0:
+            for o in IModel.addQueued:
+                IModel.db.Save(o)
+                IModel.addQueued.remove(o)
+        if len(IModel.updateQueued) > 0:
+            for o in IModel.updateQueued:
+                IModel.db.Update(o)
+                IModel.updateQueued.remove(o)
+        if len(IModel.retrieveAdditionalQueued) > 0:
+            for o in IModel.retrieveAdditionalQueued:
+                if isinstance(o, Template):
+                    if o.dataimport_id:
+                        di = IModel.db.GetData(DataImport, id=o.dataimport_id)
+                        o.dataimport = di[0]
+                IModel.retrieveAdditionalQueued.remove(o)
+       
+    
 class DataImport(IModel):
     all_instances: list[DataImport] = []
     __tablename__ = "DataImport"
@@ -49,6 +79,7 @@ class DataImport(IModel):
         self.content = kwargs.pop('_content', None)
         DataImport.all_instances.append(self)
         IModel.queueSave(child=self)
+        print(f"Utworzono {type(self)}")
         
     def getColumnPreview(self) -> dict | None:
         workbook = load_workbook(self.localPath, read_only=True)
@@ -63,6 +94,26 @@ class DataImport(IModel):
             for idx, c in enumerate(columns):
                 result[c] = dataPreviewRow[idx]
         return result if len(result) > 0 else None
+    
+    def GetRow(self, email: str) -> dict[str, str]:
+        with open(self.localPath) as r:
+            workbook = load_workbook(r, read_only=True)
+            result = dict()
+            for sheet in workbook:
+                first_row = next(sheet.iter_rows(values_only=True))
+                if "Email" not in first_row:
+                    continue
+                emailColumnIdx = first_row.index("Email")
+                
+                for row in sheet.iter_rows(min_row=2, values_only=True):
+                    if row[emailColumnIdx] == email:
+                        for idx, column in enumerate(first_row):
+                            result[column] = row[idx]
+                        break
+                break
+            if len(result) == 0:
+                raise AttributeError("Nie znaleziono odpowiadającej linijki w pliku z danymi do uzupełnienia")
+        return result
             
 
 # region Properties
@@ -116,6 +167,7 @@ class Template(IModel):
     # dataImportRel = relationship(DataImport, foreign_keys=[DataImport._id])
     
     def __init__(self, **kwargs) -> None:
+        self.obj_creation = True
         self.id: int = kwargs.pop('_id', None)
         self.name: str = kwargs.pop('_name', None)
         self.content: object = kwargs.pop('_content', None)
@@ -123,6 +175,8 @@ class Template(IModel):
         self.dataimport_id: int = kwargs.pop("_dataimport_id", None)
         Template.all_instances.append(self)
         IModel.queueSave(child=self)
+        self.obj_creation = False
+        print(f"Utworzono {type(self)}")
 
 
     def __str__(self) -> str:
@@ -130,6 +184,23 @@ class Template(IModel):
     
     def __repr__(self):
         return f"Template(_name={self.name}, _content={self.content}, _id={self.id})"
+    
+    def FillGaps(self, fillData: dict[str, str]) -> str:
+        html_text = self.content
+
+        span_text = '<span>' # TODO korzystać z tej metody do każdego generowania podglądu
+        pattern = r"<MailBuddyGap>\s*([^<>\s][^<>]*)\s*</MailBuddyGap>"
+        matches = re.findall(pattern, html_text)
+        
+        for m in matches:
+            try:
+                preview_text = fillData[m]
+            except KeyError as ke:
+                raise AttributeError("Nie znaleziono odpowiadającej wartości dla luki", ke)
+            tmp = html_text.replace(f"<MailBuddyGap>{m}</MailBuddyGap>", span_text + preview_text + "</span>")
+            if tmp:
+                html_text = tmp
+        return html_text
 
 # region Properties
     @hybrid_property
@@ -156,17 +227,20 @@ class Template(IModel):
     @name.setter
     def name(self, value: str | None):
         self._name = value
-        IModel.queueToUpdate(self)
+        if not self.obj_creation:
+            IModel.queueToUpdate(self)
 
     @content.setter
     def content(self, value: str | None):
         self._content = value
-        IModel.queueToUpdate(self)
+        if not self.obj_creation:
+            IModel.queueToUpdate(self)
         
     @dataimport_id.setter
     def dataimport_id(self, value: int | None):
         self._dataimport_id = value
-        IModel.queueToUpdate(self)
+        if not self.obj_creation:
+            IModel.queueToUpdate(self)
         IModel.retrieveAdditionalData(self)
 #endregion
 
@@ -186,6 +260,7 @@ class Attachment(IModel):
         self.type = type
         Attachment.all_instances.append(self)
         IModel.queueSave(child=self)
+        print(f"Utworzono {type(self)}")
 
     # def prepareAttachment(self):
     #     att = MIMEApplication(open(self.path, "rb").read(), _subtype=self.type)
@@ -216,6 +291,7 @@ class Contact(IModel):
         self.last_name = kwargs.pop("_last_name", "")
         Contact.all_instances.append(self)
         IModel.queueSave(child=self)
+        print(f"Utworzono {type(self)}")
 
     def __str__(self) -> str:
         return f"{self.first_name} {self.last_name}, <{self.email}>"
@@ -280,15 +356,206 @@ class User(IModel):
     _selected = Column("selected", BOOLEAN)
     
     contactRel = relationship(Contact, foreign_keys=[_email])
-    
 
+    default_settings = {
+    'gmail.com': {
+        'imap': {'hostname': 'imap.gmail.com', 'port': 993, 'socket_type': 'SSL'},
+        'smtp': {'hostname': 'smtp.gmail.com', 'port': 465, 'socket_type': 'SSL'}
+    },
+    'yahoo.com': {
+        'imap': {'hostname': 'imap.mail.yahoo.com', 'port': 993, 'socket_type': 'SSL'},
+        'smtp': {'hostname': 'smtp.mail.yahoo.com', 'port': 465, 'socket_type': 'SSL'}
+    },
+    'outlook.com': {
+        'imap': {'hostname': 'outlook.office365.com', 'port': 993, 'socket_type': 'SSL'},
+        'smtp': {'hostname': 'smtp.office365.com', 'port': 587, 'socket_type': 'STARTTLS'}
+    },
+    'poczta.onet.pl': {
+        'imap': {'hostname': 'imap.poczta.onet.pl', 'port': 993, 'socket_type': 'SSL'},
+        'smtp': {'hostname': 'smtp.poczta.onet.pl', 'port': 465, 'socket_type': 'SSL'}
+    },
+    'onet.pl': {
+        'imap': {'hostname': 'imap.poczta.onet.pl', 'port': 993, 'socket_type': 'SSL'},
+        'smtp': {'hostname': 'smtp.poczta.onet.pl', 'port': 465, 'socket_type': 'SSL'}
+    },
+    'wp.pl': {
+        'imap': {'hostname': 'imap.wp.pl', 'port': 993, 'socket_type': 'SSL'},
+        'smtp': {'hostname': 'smtp.wp.pl', 'port': 465, 'socket_type': 'SSL'}
+    },
+    'interia.pl': {
+        'imap': {'hostname': 'imap.poczta.interia.pl', 'port': 993, 'socket_type': 'SSL'},
+        'smtp': {'hostname': 'smtp.poczta.interia.pl', 'port': 465, 'socket_type': 'SSL'}
+    },
+    'pcz.pl': {
+        'imap': {'hostname': 'imap.pcz.pl', 'port': 993, 'socket_type': 'SSL'},
+        'smtp': {'hostname': 'smtp.pcz.pl', 'port': 465, 'socket_type': 'SSL'}
+    },
+    'wimii.pcz.pl': {
+        'imap': {'hostname': 'imap.wimii.pcz.pl', 'port': 993, 'socket_type': 'SSL'},
+        'smtp': {'hostname': 'smtp.wimii.pcz.pl', 'port': 465, 'socket_type': 'SSL'}
+    },
+    
+    'ethereal.email': {
+        'imap': {'hostname': 'imap.ethereal.email', 'port': 993, 'socket_type': 'SSL'},
+        'smtp': {'hostname': 'smtp.ethereal.email', 'port': 587, 'socket_type': 'STARTTLS'}
+    }
+}
+    
     def __init__(self, **kwargs) -> None:
-        self._email = kwargs.pop("_email")
+        self.email = kwargs.pop("_email")
         self.password = kwargs.pop("_password", None)
         self.contact = self.getExistingContact(kwargs.pop("_first_name", None), kwargs.pop("_last_name", None))
-        self._selected = kwargs.pop("_selected", None)
+        self.selected = kwargs.pop("_selected", False)
+        self._smtp_host = ""
+        self._smtp_port = ""
+        self._smtp_socket_type = "SSL"
         User.all_instances.append(self)
         IModel.queueSave(child=self)
+        print(f"Utworzono {type(self)}")
+        
+# region Properties
+    @hybrid_property
+    def email(self):
+        return self._email
+
+    @email.setter
+    def email(self, newValue: str):
+        self._email = newValue
+        
+    @hybrid_property
+    def selected(self) -> bool:
+        return self._selected
+
+    @selected.setter
+    def selected(self, newValue: bool):
+        if newValue == True:
+            for u in User.all_instances:
+                u._selected = False
+        self._selected = newValue
+#endregion
+
+    @staticmethod
+    def get_domain(email):
+        return email.split('@')[1]
+
+    @staticmethod
+    def get_mx_records(domain):
+        try:
+            answers = resolve(domain, 'MX')
+            mx_records = [answer.exchange.to_text() for answer in answers]
+            return mx_records
+        except Exception as e:
+            print(f"DNS lookup failed: {e}")
+            return []
+
+
+    @staticmethod
+    def get_autodiscover_settings(domain):
+        try:
+            url = f'https://autoconfig.{domain}/mail/config-v1.1.xml'
+            response = requests.get(url)
+            if response.status_code == 200:
+                return response.text
+            else:
+                url = f'https://{domain}/.well-known/autoconfig/mail/config-v1.1.xml'
+                response = requests.get(url)
+                if response.status_code == 200:
+                    return response.text
+        except Exception as e:
+            print(f"Autodiscover failed: {e}")
+        return None
+
+
+    @staticmethod
+    def parse_email_settings(xml_data):
+        try:
+            tree = ET.ElementTree(ET.fromstring(xml_data))
+        except ParseError:
+            raise AttributeError("Zwrócono niepoprawny settings XML")
+        
+        root = tree.getroot()
+        email_provider = root.find('emailProvider')
+
+        settings = {
+            'imap': {},
+            'pop3': {},
+            'smtp': []
+        }
+
+        for server in email_provider.findall('incomingServer'):
+            server_type = server.get('type')
+            settings[server_type] = {
+                'hostname': server.find('hostname').text,
+                'port': int(server.find('port').text),
+                'socket_type': server.find('socketType').text
+            }
+
+        for server in email_provider.findall('outgoingServer'):
+            smtp_settings = {
+                'hostname': server.find('hostname').text,
+                'port': int(server.find('port').text),
+                'socket_type': server.find('socketType').text
+            }
+            settings['smtp'].append(smtp_settings)
+
+        return settings
+    
+
+    def test_imap_connection(imap_settings, email, password):
+        try:
+            if imap_settings == 'SSL':
+                connection = imaplib.IMAP4_SSL(imap_settings['hostname'], imap_settings['port'])
+            else:
+                connection = imaplib.IMAP4(imap_settings['hostname'], imap_settings['port'])
+            
+            connection.login(email, password)
+            connection.logout()
+            return True
+        except Exception as e:
+            print(f"IMAP connection failed: {e}")
+            return False
+
+
+    def test_smtp_connection(smtp_settings, email, password):
+            try:
+                if smtp_settings == 'SSL':
+                    connection = smtplib.SMTP_SSL(smtp_settings['hostname'], smtp_settings['port'])
+                else:
+                    connection = smtplib.SMTP(smtp_settings['hostname'], smtp_settings['port'])
+                    if smtp_settings == 'STARTTLS':
+                        connection.starttls()
+
+                connection.login(email, password)
+                connection.quit()
+                return True
+            except Exception as e:
+                print(f"SMTP connection to {smtp_settings['hostname']} on port {smtp_settings['port']} failed: {e}")
+            return False
+    
+
+    def discover_email_settings(self):
+        domain = User.get_domain(self.email)
+        settings_xml = User.get_autodiscover_settings(domain)
+        if not settings_xml:
+            raise AttributeError("Nie znaleziono opcji dla podanej domeny")
+        
+        # try:
+        settings_xml = User.parse_email_settings(settings_xml)
+        # except 
+        
+        if domain in self.default_settings:
+            settings_xml = self.default_settings[domain]
+            print(settings_xml)
+            return settings_xml
+        
+        if self.test_imap_connection(settings_xml['imap'], self.email, self.password)  \
+            and self.test_smtp_connection(settings_xml['smtp'], self.email, self.password):
+                print("Check ok")
+                print(settings_xml)
+                return settings_xml
+        
+        raise AttributeError("Nie znaleziono opcji dla podanej domeny")
+    
     
     @staticmethod
     def GetCurrentUser() -> User | None:
@@ -304,7 +571,7 @@ class User(IModel):
         return Contact(_first_name=first_name, _last_name=last_name, _email=self._email)
 
 
-class Message(IModel, MIMEMultipart):
+class Message(IModel):
     all_instances = []
     __tablename__ = "Messages"
 
@@ -319,19 +586,30 @@ class Message(IModel, MIMEMultipart):
     # contact = relationship("Contact")
     # template = relationship("Template")
 
-    def __init__(self, recipient: Contact,
-                 att: list[Attachment] = None) -> None:
+    def __init__(self, template: Template,  recipient: Contact,
+                 att: list[Attachment] = []) -> None:
         self.recipient = recipient
+        self.email = recipient.email
         self.att = att
+        self.template = template
+        self.template_id = template.id
         Message.all_instances.append(self)
         IModel.queueSave(child=self)
-
+        print(f"Utworzono {type(self)}")
+        
+    def getParsedBody(self) -> str:
+        data = dict()
+        if self.template.dataimport_id != None:
+            data = self.template.dataimport.GetRow(self.email)
+        body: str = self.template.FillGaps(data)
+        print(f"Mail: {body}")
+        return body
 
 class Group(IModel):
     all_instances: list[Group] = []
     __tablename__ = "Groups"
     
-    _id = Column("id", Integer, primary_key=True)
+    _id = Column("id", Integer, primary_key=True, autoincrement="auto")
     _name = Column("name", String(100), nullable=True)
     
     def __init__(self, **kwargs):
@@ -377,10 +655,7 @@ class Group(IModel):
     
     @id.setter
     def id(self, newValue: int):
-        if newValue:
-            self._id = newValue
-        else:
-            self._id = max((i.id for i in Group.all_instances), default=-1) + 1
+        self._id = newValue
 
     @name.setter
     def name(self, value: str | None):

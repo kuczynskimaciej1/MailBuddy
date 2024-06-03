@@ -87,10 +87,12 @@ class TemplateEditor(Toplevel):
             pattern = r"<MailBuddyGap>\s*([^<>\s][^<>]*)\s*</MailBuddyGap>"
             matches = re.findall(pattern, html_text)
             
-            preview_text = "" #TODO
             for m in matches:
                 preview_text = GapFillSource.getPreviewText(m)
-                html_text = html_text.replace(f"<MailBuddyGap>{m}</MailBuddyGap>", color_span_text + preview_text + "</span>")
+                if preview_text:
+                    tmp = html_text.replace(f"<MailBuddyGap>{m}</MailBuddyGap>", color_span_text + preview_text + "</span>")
+                    if tmp:
+                        html_text = tmp
                 
 
             html_text = html_text.replace("<MailBuddyGap>", color_span_text)
@@ -102,8 +104,9 @@ class TemplateEditor(Toplevel):
 
     def __save_template_clicked(self, template_name: str, template_content: str) -> None:
         if template_name != "" and template_content != "":
-            self.currentTemplate = Template(_name=template_name, _content=template_content)
-            self.parent.add_template(self.currentTemplate)
+            self.currentTemplate.name = template_name 
+            self.currentTemplate.content = template_content
+            self.parent.update_templates()
         self.destroy()
 
 

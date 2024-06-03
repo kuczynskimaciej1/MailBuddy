@@ -4,54 +4,6 @@ import smtplib
 import imaplib
 import xml.etree.ElementTree as ET
 
-
-default_settings = {
-    'gmail.com': {
-        'imap': {'hostname': 'imap.gmail.com', 'port': 993, 'socket_type': 'SSL'},
-        'smtp': {'hostname': 'smtp.gmail.com', 'port': 465, 'socket_type': 'SSL'}
-    },
-    'yahoo.com': {
-        'imap': {'hostname': 'imap.mail.yahoo.com', 'port': 993, 'socket_type': 'SSL'},
-        'smtp': {'hostname': 'smtp.mail.yahoo.com', 'port': 465, 'socket_type': 'SSL'}
-    },
-    'outlook.com': {
-        'imap': {'hostname': 'outlook.office365.com', 'port': 993, 'socket_type': 'SSL'},
-        'smtp': {'hostname': 'smtp.office365.com', 'port': 587, 'socket_type': 'STARTTLS'}
-    },
-    'poczta.onet.pl': {
-        'imap': {'hostname': 'imap.poczta.onet.pl', 'port': 993, 'socket_type': 'SSL'},
-        'smtp': {'hostname': 'smtp.poczta.onet.pl', 'port': 465, 'socket_type': 'SSL'}
-    },
-    'onet.pl': {
-        'imap': {'hostname': 'imap.poczta.onet.pl', 'port': 993, 'socket_type': 'SSL'},
-        'smtp': {'hostname': 'smtp.poczta.onet.pl', 'port': 465, 'socket_type': 'SSL'}
-    },
-    'wp.pl': {
-        'imap': {'hostname': 'imap.wp.pl', 'port': 993, 'socket_type': 'SSL'},
-        'smtp': {'hostname': 'smtp.wp.pl', 'port': 465, 'socket_type': 'SSL'}
-    },
-    'interia.pl': {
-        'imap': {'hostname': 'imap.poczta.interia.pl', 'port': 993, 'socket_type': 'SSL'},
-        'smtp': {'hostname': 'smtp.poczta.interia.pl', 'port': 465, 'socket_type': 'SSL'}
-    },
-    'pcz.pl': {
-        'imap': {'hostname': 'imap.pcz.pl', 'port': 993, 'socket_type': 'SSL'},
-        'smtp': {'hostname': 'smtp.pcz.pl', 'port': 465, 'socket_type': 'SSL'}
-    },
-    'wimii.pcz.pl': {
-        'imap': {'hostname': 'imap.wimii.pcz.pl', 'port': 993, 'socket_type': 'SSL'},
-        'smtp': {'hostname': 'smtp.wimii.pcz.pl', 'port': 465, 'socket_type': 'SSL'}
-    },
-    
-    'ethereal.email': {
-        'imap': {'hostname': 'imap.ethereal.email', 'port': 993, 'socket_type': 'SSL'},
-        'smtp': {'hostname': 'smtp.ethereal.email', 'port': 587, 'socket_type': 'STARTTLS'}
-    }
-}
-
-
-
-
 def get_domain(email):
     return email.split('@')[1]
 
@@ -166,10 +118,11 @@ def discover_email_settings(email, password):
     else:
         print("No settings found for this domain.")
     
-    #if test_imap_connection(settings_xml['imap'], email, password) and test_smtp_connection(settings_xml['smtp'], email, password):
-       #print("Check ok")
-        #print(settings_xml)
-        #return settings_xml
-    #else:
-        #print("Failed to connect with discovered settings.")
-        #return None
+    if test_imap_connection(settings_xml['imap'], email, password) and test_smtp_connection(settings_xml['smtp'], email, password):
+        print("Check ok")
+        print(settings_xml)
+        return settings_xml
+    
+    else:
+        print("Failed to connect with discovered settings.")
+        return None

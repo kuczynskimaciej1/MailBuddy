@@ -1,16 +1,5 @@
-from collections.abc import Callable, Iterable
-from enum import Enum
-from sqlalchemy.exc import IntegrityError
-from types import TracebackType
-from traceback import print_tb
-from typing import Literal, Any, NoReturn
-from tkinter import Event, Menu, simpledialog, ttk, Listbox, Tk, Text, Button, Frame, Label, Entry, Scrollbar, Toplevel, Misc, messagebox, Menubutton, Canvas,Checkbutton,BooleanVar, VERTICAL, RAISED
-from tkinter.ttk import Combobox
-from tkinter.constants import NORMAL, DISABLED, BOTH, RIDGE, END, LEFT, RIGHT, TOP, X, Y, INSERT, SEL, WORD
-from group_controller import GroupController
-from models import Contact, IModel, Template, Group
-from tkhtmlview import HTMLLabel, HTMLText
-from DataSources.dataSources import GapFillSource
+from tkinter import Button, Label, Entry, Toplevel, messagebox
+from models import Contact
 
 
 class AddContactWindow(Toplevel):

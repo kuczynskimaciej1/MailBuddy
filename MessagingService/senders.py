@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from smtplib import *
-import MessagingService.smtp_data
-
 from models import Group, Template, User, Message
 
 class ISender(metaclass=ABCMeta):
@@ -15,33 +15,37 @@ class ISender(metaclass=ABCMeta):
             if any("Send" in B.__dict__ for B in __subclass.__mro__):
                 return True
         return NotImplemented
-    
-    @abstractmethod
-    def SendEmails(self, g: Group, t: Template, u: User) -> None:
-        # TODO: Tworzenie obiektów Message i wysyłka
-        raise AssertionError
 
     
 class SMTPSender(ISender):
-    
-    def SendEmails(self, g: Group, t: Template, u: User) -> None:
-        # TODO: Tworzenie obiektów Message i wysyłka
-        raise NotImplementedError
-    
-    def Send(self, host, port, email, password, message, recipient) -> None:
-        smtp_host = host
-        smtp_port = port
-        print("PASSWORD: " + password)
-        print("RECIPIENT: " + recipient)
-        print("HOST: " + str(smtp_host))
-        print("PORT: " + str(smtp_port))
-        server = SMTP(smtp_host, smtp_port)
-        server.connect(smtp_host, smtp_port)
-        server.starttls()
+
+    def Send(self, g: Group, t: Template, u: User) -> None:
+        # print("PASSWORD: " + u.password)
+        print("HOST: " + str(u._smtp_host))
+        print("PORT: " + str(u._smtp_port))
+        if not u._smtp_host or not u._smtp_port:
+            raise AttributeError("Nie połączyłeś się z serwerem, aby pobrać ustawienia")
+        server = SMTP_SSL(u._smtp_host, u._smtp_port)
+        server.connect(u._smtp_host, u._smtp_port)
+        #server.starttls()
         server.ehlo()
-        server.login(email, password)
-        server.sendmail(email, recipient, message)
+        server.login(u._email, u.password)
+        print("logged in successfully")
+        emailsSent = 0
+        print(f"Sending {t.name} to {len(g.contacts)} contacts")
+        for contact in g.contacts:
+            print(f"Sending do {contact.email}")
+            message = Message(t, contact)
+            mimemsg = MIMEMultipart("alternative")
+            mimemsg["From"] = u._email
+            mimemsg["To"] = contact.email
+            mimemsg["Subject"] = "MailBuddy mailing"  # TODO Temat maila w TemplateEditor, aby dało się go parametryzować
+            xd = MIMEText(message.getParsedBody(), "html")
+            mimemsg.attach(xd)
+            server.send_message(mimemsg)
+            emailsSent += 1
         server.quit()
+        print(f"Sent {emailsSent}")
         
 # class MockSMTPSender(ISender):
 #     def __init__(self) -> None:

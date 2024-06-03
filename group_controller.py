@@ -1,11 +1,11 @@
 from additionalTableSetup import GroupContacts
 from models import Group, Contact
-from DataSources.dataSources import DatabaseHandler
+from DataSources.dataSourceAbs import IDataSource
 
 class GroupController:
-    dbh: DatabaseHandler = None
+    dbh: IDataSource = None
     @classmethod
-    def setDbHandler(cls, handler: DatabaseHandler) -> None:
+    def setDbHandler(cls, handler: IDataSource) -> None:
         cls.dbh = handler
     
     @classmethod
