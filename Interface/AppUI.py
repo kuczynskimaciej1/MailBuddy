@@ -122,7 +122,8 @@ class AppUI():
         
         u = User.GetCurrentUser()
         self.sender.Send(self.selected_mailing_group, self.selected_template_group, u)
-        #send_email()
+        messagebox.showinfo("Zakończono wysyłanie", "Ukończono wysyłanie maili")
+        
 
     def __template_selection_changed(self, _event):
         selected = self.template_listbox.curselection()

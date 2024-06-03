@@ -63,8 +63,6 @@ class IModel(declarative_base()):
                 IModel.retrieveAdditionalQueued.remove(o)
        
     
-
-
 class DataImport(IModel):
     all_instances: list[DataImport] = []
     __tablename__ = "DataImport"
@@ -109,11 +107,11 @@ class DataImport(IModel):
                 if row[emailColumnIdx] == email:
                     for idx, column in enumerate(first_row):
                         result[column] = row[idx]
-                        break
                     break
             break
         if len(result) == 0:
             raise AttributeError("Nie znaleziono odpowiadającej linijki w pliku z danymi do uzupełnienia")
+        workbook.close()
         return result
             
 
@@ -590,20 +588,11 @@ class Message(IModel):
         
     def getParsedBody(self) -> str:
         data = dict()
-        if self.template.dataimport:
+        if self.template.dataimport_id != None:
             data = self.template.dataimport.GetRow(self.email)
         body: str = self.template.FillGaps(data)
+        print(f"Mail: {body}")
         return body
-    
-    #def prepareMail(self) -> str:
-        #pathToXlsx = self.template.dataimport._localPath
-        #print(pathToXlsx)
-
-        #template = self.template._content
-
-        #return body
-    
-
 
 class Group(IModel):
     all_instances: list[Group] = []
