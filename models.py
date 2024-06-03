@@ -82,21 +82,22 @@ class DataImport(IModel):
         print(f"Utworzono {type(self)}")
         
     def getColumnPreview(self) -> dict | None:
-        workbook = load_workbook(self.localPath, read_only=True)
-        result = dict()
-        for sheet in workbook:
-            first_row = next(sheet.iter_rows(values_only=True))
-            if "Email" not in first_row:
-                continue
-            
-            columns = first_row
-            dataPreviewRow = next(sheet.iter_rows(min_row=2, values_only=True))
-            for idx, c in enumerate(columns):
-                result[c] = dataPreviewRow[idx]
+        with open(self.localPath, 'br') as r:
+            workbook = load_workbook(r, read_only=True)
+            result = dict()
+            for sheet in workbook:
+                first_row = next(sheet.iter_rows(values_only=True))
+                if "Email" not in first_row:
+                    continue
+                
+                columns = first_row
+                dataPreviewRow = next(sheet.iter_rows(min_row=2, values_only=True))
+                for idx, c in enumerate(columns):
+                    result[c] = dataPreviewRow[idx]
         return result if len(result) > 0 else None
     
     def GetRow(self, email: str) -> dict[str, str]:
-        with open(self.localPath) as r:
+        with open(self.localPath, 'br') as r:
             workbook = load_workbook(r, read_only=True)
             result = dict()
             for sheet in workbook:
